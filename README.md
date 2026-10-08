@@ -2,6 +2,8 @@
 
 Interactive, single-file browser demos exploring what happens when generative AI becomes part of a blockchain: models as the key to a chain, mining by generating art, open math problems as puzzles, and living cellular automata grown from language.
 
+![Bloom Chain growing a many-colored flower](docs/images/bloom-chain.png)
+
 The demos accompany two essays by Rex St. John (ironchef):
 
 - *Generative AI Blockchains are Coming, And They Will Blow Your Mind* (Medium, Feb 2023)
@@ -19,6 +21,23 @@ The demos accompany two essays by Rex St. John (ironchef):
 | [Proof Chain](demos/proof-chain.html) | Challenge Vaults: open Erdős problems stated in Lean, minted by whoever submits a proof the kernel accepts. | [docs](docs/proof-chain.md) |
 | [Living Rules](demos/living-rules.html) | Lenia-style cellular automata, with an evolutionary search that finds rules that come alive. | [docs](docs/living-rules.md) |
 | [Bloom Chain](demos/bloom-chain.html) | Type a prompt; Claude sketches it as living tissue and each new prompt evolves the scene, link by link. | [docs](docs/bloom-chain.md) |
+
+## Screenshots
+
+<table>
+<tr>
+<td width="50%"><a href="docs/artwork-chain.md"><img src="docs/images/artwork-chain.png" alt="Artwork Chain"></a><br><b>Artwork Chain</b></td>
+<td width="50%"><a href="docs/prompt-mining.md"><img src="docs/images/prompt-mining.png" alt="Prompt Mining"></a><br><b>Prompt Mining</b></td>
+</tr>
+<tr>
+<td width="50%"><a href="docs/request-for-art.md"><img src="docs/images/request-for-art.png" alt="Request for Art"></a><br><b>Request for Art</b></td>
+<td width="50%"><a href="docs/proof-chain.md"><img src="docs/images/proof-chain.png" alt="Proof Chain"></a><br><b>Proof Chain</b></td>
+</tr>
+<tr>
+<td width="50%"><a href="docs/living-rules.md"><img src="docs/images/living-rules.png" alt="Living Rules"></a><br><b>Living Rules</b></td>
+<td width="50%"><a href="docs/bloom-chain.md"><img src="docs/images/bloom-chain.png" alt="Bloom Chain"></a><br><b>Bloom Chain</b></td>
+</tr>
+</table>
 
 ## Running them
 

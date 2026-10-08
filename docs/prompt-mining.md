@@ -2,6 +2,8 @@
 
 [Open the demo](../demos/prompt-mining.html)
 
+![Prompt Mining screenshot](images/prompt-mining.png)
+
 A live version of Proof of Generation from the essay *Generative Blockchains*.
 
 ## How a round works

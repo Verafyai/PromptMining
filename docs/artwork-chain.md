@@ -2,6 +2,8 @@
 
 [Open the demo](../demos/artwork-chain.html)
 
+![Artwork Chain screenshot](images/artwork-chain.png)
+
 A chain of ten blocks, one per verse of Genesis 1 (KJV). Each block is a painting generated from its verse and the previous block's hash.
 
 ## Block structure

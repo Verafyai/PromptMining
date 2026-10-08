@@ -2,6 +2,8 @@
 
 [Open the demo](../demos/living-rules.html)
 
+![Living Rules screenshot](images/living-rules.png)
+
 Continuous cellular automata, rendered like stained tissue, with an evolutionary search that finds rules that come alive. Runs on the GPU via WebGL 2.
 
 ## The rule

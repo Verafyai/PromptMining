@@ -2,6 +2,8 @@
 
 [Open the demo](../demos/request-for-art.html)
 
+![Request for Art screenshot](images/request-for-art.png)
+
 The mining race drawn as a dartboard. A hidden "request for art" sits in the center; twelve miners sit on the outer ring.
 
 ## What you see

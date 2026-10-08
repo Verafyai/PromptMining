@@ -2,6 +2,8 @@
 
 [Open the demo](../demos/proof-chain.html)
 
+![Proof Chain screenshot](images/proof-chain.png)
+
 A chain whose puzzles are open Erdős problems stated in Lean. Provers race to submit a proof or disproof; the first one the kernel accepts mints the block and earns the credit.
 
 > **Simulation only.** The ten problems are real and were open when this was built; check [erdosproblems.com](https://www.erdosproblems.com) for current status. Every submission, proof and result is simulated, and minted blocks are labeled "simulated result". The Lean statements are simplified sketches; real formalizations live in Google DeepMind's [Formal Conjectures](https://github.com/google-deepmind/formal-conjectures) library.

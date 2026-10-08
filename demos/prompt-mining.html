@@ -194,6 +194,7 @@ const $=id=>document.getElementById(id);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const randPrompt=()=>pick(NOUNS)+" "+pick(VERBS)+" "+pick(NOUNS);
 const fmt=n=>n.toLocaleString("en-US");
+const log=t=>{$("log").textContent=t;};
 
 /* build miner tiles */
 const tiles=MINERS.map(name=>{

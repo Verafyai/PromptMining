@@ -2,6 +2,8 @@
 
 [Open the demo](../demos/bloom-chain.html)
 
+![Bloom Chain screenshot](images/bloom-chain.png)
+
 Type a prompt. Claude sketches it as shapes, divides it into up to four living tissues and picks a behavior for each. Cellular automata then grow the sketch into moving tissue. Every new prompt is sent along with Claude's previous response, so the scene evolves link by link.
 
 ## Pipeline
