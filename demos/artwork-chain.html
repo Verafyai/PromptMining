@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Artwork Chain: a generative AI blockchain, running</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E8EBF2; --panel:#F7F8FC; --ink:#16224A; --muted:#58618A; --line:#C8CEE0;
+  --gold:#9C7614; --gold-soft:#EFE3BC; --rust:#B0432C; --rust-soft:#F5DAD2;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1834; --panel:#16224A; --ink:#E7EAF5; --muted:#9CA5C9; --line:#2B3A6C;
+    --gold:#DDBB52; --gold-soft:#3A3620; --rust:#E4826A; --rust-soft:#40232A;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1834; --panel:#16224A; --ink:#E7EAF5; --muted:#9CA5C9; --line:#2B3A6C;
+  --gold:#DDBB52; --gold-soft:#3A3620; --rust:#E4826A; --rust-soft:#40232A;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:40px 24px 64px}
+h1{font-family:"IM Fell English",Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(2.1rem,5vw,3.2rem);line-height:1.05;margin:0 0 14px;letter-spacing:-.01em}
+.lede{max-width:62ch;margin:0 0 6px;font-size:1.05rem}
+.credit{max-width:62ch;margin:0 0 32px;color:var(--muted);font-size:.9rem}
+.stage{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:32px;align-items:start}
+.frame{background:var(--panel);border:1px solid var(--gold);padding:10px}
+.frame canvas{display:block;width:100%;height:auto;aspect-ratio:1/1}
+.stepline{margin:8px 2px 0;font-size:.85rem;color:var(--muted);min-height:1.3em}
+.info{min-width:0}
+.head{font-size:.95rem;color:var(--muted);margin:0 0 6px}
+.verse{font-family:"IM Fell English",Georgia,serif;font-size:1.45rem;line-height:1.35;margin:0 0 4px;max-width:36ch}
+.ref{font-family:"IM Fell English",Georgia,serif;font-style:italic;color:var(--muted);margin:0 0 18px}
+textarea{width:100%;max-width:44ch;min-height:6.5em;font-family:"IM Fell English",Georgia,serif;font-size:1.2rem;line-height:1.35;padding:10px;border:1px solid var(--gold);background:var(--panel);color:var(--ink);resize:vertical;margin-bottom:10px}
+dl{margin:0 0 16px;display:grid;gap:10px}
+dt{font-size:.82rem;color:var(--muted)}
+dd{margin:0}
+.hash{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;word-break:break-all;max-width:66ch}
+.status{padding:10px 12px;margin:0 0 14px;font-size:.95rem;border-left:3px solid transparent}
+.status.ok{background:var(--gold-soft);border-color:var(--gold)}
+.status.bad{background:var(--rust-soft);border-color:var(--rust)}
+.status:empty{display:none}
+.compare{display:flex;gap:12px;align-items:center;margin:0 0 14px}
+.compare canvas{width:96px;height:96px;border:1px solid var(--line)}
+.compare p{margin:0;font-size:.88rem;color:var(--muted);max-width:28ch}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font:inherit;font-size:.95rem;padding:9px 16px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;border-radius:2px}
+button:hover:not(:disabled){border-color:var(--gold)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible,textarea:focus-visible,.blk:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.controls{margin:36px 0 14px;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;align-items:center;gap:8px;font-size:.9rem;color:var(--muted)}
+.seg button{padding:7px 12px;font-size:.88rem}
+.seg button[aria-pressed="true"]{background:var(--gold-soft);border-color:var(--gold);color:var(--ink)}
+.log{min-height:1.5em;margin:0 0 18px;font-size:.95rem}
+.chainwrap{overflow-x:auto;padding:6px 2px 14px}
+.chain{display:flex;align-items:center;width:max-content}
+.link{width:22px;height:2px;background:var(--gold);flex:none}
+.link.broken{background:repeating-linear-gradient(90deg,var(--rust) 0 4px,transparent 4px 8px)}
+.link.pending{background:repeating-linear-gradient(90deg,var(--line) 0 4px,transparent 4px 8px)}
+.blk{flex:none;width:112px;padding:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink);text-align:left;cursor:pointer;border-radius:0;font:inherit}
+.blk canvas{display:block;width:100px;height:100px}
+.blk .t{font-size:.8rem;margin-top:5px}
+.blk .h{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.7rem;color:var(--muted)}
+.blk.sel{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.blk.ok{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
+.blk.bad{border-color:var(--rust);box-shadow:0 0 0 2px var(--rust)}
+.blk.pend{border-style:dashed;background:transparent;cursor:default}
+.blk.pend .ph{width:100px;height:100px;display:flex;align-items:center;justify-content:center;font-family:"IM Fell English",Georgia,serif;font-style:italic;color:var(--muted);font-size:.9rem;border:1px dashed var(--line)}
+.tag{display:inline-block;font-size:.7rem;padding:0 5px;margin-left:4px;background:var(--rust-soft);color:var(--ink)}
+.how{margin-top:40px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px}
+.how h2{font-family:"IM Fell English",Georgia,serif;font-weight:400;font-size:1.3rem;margin:0 0 6px}
+.how p{margin:0;color:var(--muted);font-size:.95rem;max-width:40ch}
+@media (max-width:760px){
+  .wrap{padding:28px 16px 48px}
+  .stage{grid-template-columns:1fr}
+  .frame{max-width:420px}
+  .how{grid-template-columns:1fr;gap:18px}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Artwork Chain</h1>
+  <p class="lede">Each block on this chain is a painting. A generative model paints it from one verse of Genesis plus the hash of the block before it. Anyone holding the model can repaint every block and confirm the chain; anyone without it can't reproduce a single one.</p>
+  <p class="credit">An interactive sketch of ironchef's 2023 essay “Generative AI Blockchains are Coming.” The model here is a small procedural painter standing in for a billion-parameter image model, so the whole thing runs in your browser.</p>
+
+  <section class="stage">
+    <div>
+      <div class="frame"><canvas id="stage" width="640" height="640" aria-label="Artwork for the selected block"></canvas></div>
+      <p class="stepline" id="stepline"></p>
+    </div>
+    <div class="info">
+      <p class="head" id="iHead">Nothing minted yet</p>
+      <p class="verse" id="iVerse">Mint the genesis block to start the chain.</p>
+      <textarea id="iEdit" hidden aria-label="Edit this block's verse"></textarea>
+      <p class="ref" id="iRef"></p>
+      <dl id="iDl" hidden>
+        <div><dt>Previous block hash</dt><dd class="hash" id="iPrev"></dd></div>
+        <div><dt>Painted by</dt><dd id="iModel"></dd></div>
+        <div><dt>Artwork fingerprint</dt><dd class="hash" id="iFp"></dd></div>
+        <div><dt>Block hash</dt><dd class="hash" id="iHash"></dd></div>
+      </dl>
+      <div class="status" id="iStatus" role="status"></div>
+      <div class="compare" id="cmpWrap" hidden>
+        <canvas id="cmp" width="192" height="192" aria-label="What the canonical model paints for this verse"></canvas>
+        <p>What the canonical model paints for this verse. The stored artwork doesn't match it.</p>
+      </div>
+      <div class="row" id="blockActions" hidden>
+        <button id="bEdit">Edit verse</button>
+        <button id="bSave" hidden class="primary">Save edited verse</button>
+        <button id="bCancel" hidden>Cancel</button>
+        <button id="bRemint">Re-mint from this block</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="controls">
+    <div class="row">
+      <button class="primary" id="bMint">Mint genesis block</button>
+      <button id="bAuto" aria-pressed="false">Auto-mint</button>
+      <button id="bVerify">Verify chain</button>
+      <button id="bReset">Reset</button>
+    </div>
+    <div class="seg" role="group" aria-label="Model used for minting">
+      Minting with
+      <button id="mCanon" aria-pressed="true">Canonical model</button>
+      <button id="mKnock" aria-pressed="false">Knockoff model</button>
+    </div>
+  </div>
+  <p class="log" id="log" aria-live="polite">The network verifies every block against the canonical model.</p>
+
+  <div class="chainwrap"><div class="chain" id="chain"></div></div>
+
+  <section class="how">
+    <div><h2>Minting</h2><p>The prompt is the next verse. The model's weights, the verse and the previous block hash seed the painting, so every block depends on everything before it.</p></div>
+    <div><h2>Verifying</h2><p>Validators rerun the canonical model on each block. If the painting it produces matches the stored fingerprint, the block is genuine.</p></div>
+    <div><h2>Forging</h2><p>Edit a verse, or mint with the knockoff model, then verify. Without the exact model you can't produce paintings the network accepts.</p></div>
+  </section>
+</main>
+
+<script>
+(function(){
+const VERSES=[
+ ["Genesis 1:1","In the beginning God created the heaven and the earth."],
+ ["Genesis 1:2","And the earth was without form, and void; and darkness was upon the face of the deep. And the Spirit of God moved upon the face of the waters."],
+ ["Genesis 1:3","And God said, Let there be light: and there was light."],
+ ["Genesis 1:4","And God saw the light, that it was good: and God divided the light from the darkness."],
+ ["Genesis 1:5","And God called the light Day, and the darkness he called Night. And the evening and the morning were the first day."],
+ ["Genesis 1:6","And God said, Let there be a firmament in the midst of the waters, and let it divide the waters from the waters."],
+ ["Genesis 1:7","And God made the firmament, and divided the waters which were under the firmament from the waters which were above the firmament: and it was so."],
+ ["Genesis 1:8","And God called the firmament Heaven. And the evening and the morning were the second day."],
+ ["Genesis 1:9","And God said, Let the waters under the heaven be gathered together unto one place, and let the dry land appear: and it was so."],
+ ["Genesis 1:10","And God called the dry land Earth; and the gathering together of the waters called he Seas: and God saw that it was good."]
+];
+const ZERO="0".repeat(64);
+const MODELS={
+  canon:{label:"Canonical model (illuminator-1b, weights 7f3a91c0)",short:"Canonical",weights:"illuminator-1b:7f3a91c0"},
+  knock:{label:"Knockoff model (fine-tuned copy, weights 02c9e4b7)",short:"Knockoff",weights:"illuminator-1b-ft:02c9e4b7"}
+};
+const PIG=["#22397A","#1B1D2B","#B8402E","#2E6E53","#C98B2B","#7E2F4A","#1F4E7A","#EDE3CB","#6F9BD1","#D98C9A"];
+const GOLD="#D4AF37";
+const reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function cyrb53(str,seed){seed=seed||0;let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507);h1^=Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507);h2^=Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0);}
+function hash(s){let o="";for(let i=0;i<5;i++)o+=cyrb53(s,i*7919).toString(16).padStart(14,"0");return o.slice(0,64);}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* The "model": weights + previous hash + prompt -> latent -> painting */
+function runModel(weights,prev,prompt){
+  const seed=cyrb53(weights+"|"+prev+"|"+prompt)>>>0;
+  const r=mulberry32(seed);
+  const bgs=[0,1,3,5,6];
+  const bg=bgs[Math.floor(r()*bgs.length)];
+  const pool=[2,4,7,8,9,3,0].filter(i=>i!==bg);
+  const pal=[];
+  while(pal.length<3){const p=pool[Math.floor(r()*pool.length)];if(!pal.includes(p))pal.push(p);}
+  return{seed,bg,pal,petals:5+Math.floor(r()*8),rings:2+Math.floor(r()*4),rot:+(r()*Math.PI*2).toFixed(5),
+    lines:60+Math.floor(r()*70),f1:+(0.5+r()*3).toFixed(4),f2:+(0.5+r()*3).toFixed(4),k:+(0.6+r()*2).toFixed(4),
+    border:Math.floor(r()*3),petalLen:+(0.15+r()*0.08).toFixed(4),petalW:+(0.05+r()*0.07).toFixed(4)};
+}
+function fingerprint(L){return hash(JSON.stringify(L));}
+function blockHash(h,prev,verse,fp){return hash(h+"|"+prev+"|"+verse+"|"+fp);}
+
+function paint(ctx,S,L){
+  const r=mulberry32((L.seed^0x9e3779b9)>>>0);
+  const P=L.pal.map(i=>PIG[i]);
+  ctx.save();
+  ctx.globalAlpha=1;ctx.fillStyle=PIG[L.bg];ctx.fillRect(0,0,S,S);
+  ctx.lineWidth=S/280;ctx.lineCap="round";
+  for(let i=0;i<L.lines;i++){
+    let x=r()*S,y=r()*S;ctx.beginPath();ctx.moveTo(x,y);
+    ctx.strokeStyle=P[i%3];ctx.globalAlpha=0.38;
+    for(let j=0;j<30;j++){const a=Math.sin(x/S*L.f1*6+L.rot)*Math.cos(y/S*L.f2*6)*L.k*Math.PI;x+=Math.cos(a)*S/95;y+=Math.sin(a)*S/95;ctx.lineTo(x,y);}
+    ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+  const c=S/2;
+  ctx.save();ctx.translate(c,c);ctx.rotate(L.rot);
+  for(let i=0;i<L.petals;i++){
+    ctx.rotate(Math.PI*2/L.petals);
+    ctx.beginPath();ctx.ellipse(0,-S*L.petalLen,S*L.petalW,S*L.petalLen*0.95,0,0,Math.PI*2);
+    ctx.fillStyle=P[1];ctx.globalAlpha=0.92;ctx.fill();ctx.globalAlpha=1;
+    ctx.strokeStyle=GOLD;ctx.lineWidth=S/230;ctx.stroke();
+  }
+  ctx.restore();
+  for(let i=L.rings;i>0;i--){
+    ctx.beginPath();ctx.arc(c,c,S*0.03+i*S*0.028,0,Math.PI*2);
+    ctx.fillStyle=i%2?P[0]:PIG[L.bg];ctx.fill();ctx.strokeStyle=GOLD;ctx.lineWidth=S/260;ctx.stroke();
+  }
+  ctx.beginPath();ctx.arc(c,c,S*0.022,0,Math.PI*2);ctx.fillStyle=GOLD;ctx.fill();
+  const b=S*0.045;ctx.strokeStyle=GOLD;ctx.lineWidth=S/110;ctx.strokeRect(b,b,S-2*b,S-2*b);
+  if(L.border>0){
+    const n=14,step=(S-2*b)/n;
+    for(let i=0;i<=n;i++){for(const [x,y] of [[b+i*step,b],[b+i*step,S-b],[b,b+i*step],[S-b,b+i*step]]){
+      ctx.beginPath();ctx.arc(x,y,S*(L.border===2?0.011:0.008),0,Math.PI*2);ctx.fillStyle=(i%2)?P[2]:GOLD;ctx.fill();}}
+  }
+  ctx.restore();
+}
+
+/* State + DOM */
+const $=id=>document.getElementById(id);
+const stage=$("stage"),sctx=stage.getContext("2d");
+let chain=[],sel=null,busy=false,auto=false,mintWith="canon",editing=false;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+function placeholder(){
+  const S=stage.width;const cs=getComputedStyle(document.documentElement);
+  sctx.fillStyle=cs.getPropertyValue("--panel").trim()||"#F7F8FC";sctx.fillRect(0,0,S,S);
+  sctx.strokeStyle=cs.getPropertyValue("--line").trim()||"#C8CEE0";sctx.setLineDash([10,10]);sctx.lineWidth=3;
+  sctx.strokeRect(S*0.045,S*0.045,S*0.91,S*0.91);sctx.setLineDash([]);
+}
+
+function denoise(canvas,L,steps){
+  return new Promise(res=>{
+    const S=canvas.width,ctx=canvas.getContext("2d");
+    const off=document.createElement("canvas");off.width=off.height=S;paint(off.getContext("2d"),S,L);
+    if(reduce){ctx.drawImage(off,0,0);$("stepline").textContent="Painted.";res();return;}
+    const N=48,n=document.createElement("canvas");n.width=n.height=N;const nctx=n.getContext("2d");
+    let t=0;
+    (function frame(){
+      t++;const id=nctx.createImageData(N,N);
+      for(let i=0;i<id.data.length;i+=4){const v=Math.random()*255;id.data[i]=30+v*.55;id.data[i+1]=40+v*.6;id.data[i+2]=70+v*.7;id.data[i+3]=255;}
+      nctx.putImageData(id,0,0);
+      ctx.globalAlpha=1;ctx.imageSmoothingEnabled=false;ctx.drawImage(n,0,0,S,S);ctx.imageSmoothingEnabled=true;
+      const p=t/steps;ctx.globalAlpha=Math.min(1,p*p*0.85+p*0.15);
+      if("filter" in ctx)ctx.filter="blur("+((1-p)*S/45).toFixed(1)+"px)";
+      ctx.drawImage(off,0,0);if("filter" in ctx)ctx.filter="none";ctx.globalAlpha=1;
+      $("stepline").textContent="Denoising, step "+t+" of "+steps;
+      if(t<steps)setTimeout(frame,50);else{ctx.drawImage(off,0,0);$("stepline").textContent="Painted in "+steps+" denoising steps.";res();}
+    })();
+  });
+}
+
+function short(h){return h.slice(0,8)+"…"+h.slice(-4);}
+function log(t){$("log").textContent=t;}
+
+function showInfo(b,pending){
+  if(!b){$("iHead").textContent="Nothing minted yet";$("iVerse").textContent="Mint the genesis block to start the chain.";$("iRef").textContent="";
+    $("iDl").hidden=true;$("iStatus").textContent="";$("iStatus").className="status";$("cmpWrap").hidden=true;$("blockActions").hidden=true;return;}
+  $("iHead").textContent=(b.height===0?"Block 0, the genesis block":"Block "+b.height)+(pending?", minting now":"");
+  $("iVerse").textContent=b.verse;$("iRef").textContent=b.ref+(b.edited?" (edited)":"");
+  $("iDl").hidden=false;
+  $("iPrev").textContent=b.prev===ZERO?ZERO+" (none, this is the first block)":b.prev;
+  $("iModel").textContent=MODELS[b.model].label;
+  $("iFp").textContent=pending?"waiting for the painting":b.fp;
+  $("iHash").textContent=pending?"waiting for the painting":b.hash;
+  const st=$("iStatus");
+  if(b.status==="ok"){st.className="status ok";st.textContent="Verified. The canonical model reproduces this painting exactly.";}
+  else if(b.status==="bad"){st.className="status bad";st.textContent="Rejected. "+b.reason;}
+  else{st.className="status";st.textContent="";}
+  const showCmp=b.status==="bad"&&b.fpMismatch;
+  $("cmpWrap").hidden=!showCmp;
+  if(showCmp){const c=$("cmp");paint(c.getContext("2d"),c.width,runModel(MODELS.canon.weights,b.prev,b.verse));}
+  $("blockActions").hidden=pending;
+  setEditing(false);
+}
+
+function renderChain(){
+  const el=$("chain");el.innerHTML="";
+  for(let i=0;i<VERSES.length;i++){
+    if(i>0){const l=document.createElement("div");l.className="link";
+      const b=chain[i];if(!b)l.classList.add("pending");else if(b.status==="bad"&&b.linkBroken)l.classList.add("broken");el.appendChild(l);}
+    const b=chain[i];
+    if(!b){
+      const d=document.createElement("div");d.className="blk pend";
+      d.innerHTML='<div class="ph">'+VERSES[i][0].replace("Genesis ","Gen. ")+'</div><div class="t">Block '+i+'</div><div class="h">not minted</div>';
+      el.appendChild(d);continue;
+    }
+    const btn=document.createElement("button");btn.className="blk";
+    if(b.status)btn.classList.add(b.status);if(sel===i)btn.classList.add("sel");
+    btn.setAttribute("aria-label","Block "+i+", "+b.ref+(b.status?", "+(b.status==="ok"?"verified":"rejected"):""));
+    const c=document.createElement("canvas");c.width=c.height=200;paint(c.getContext("2d"),200,b.L);
+    btn.appendChild(c);
+    const t=document.createElement("div");t.className="t";t.textContent="Block "+i;
+    if(b.model==="knock"){const g=document.createElement("span");g.className="tag";g.textContent="knockoff";t.appendChild(g);}
+    if(b.edited){const g=document.createElement("span");g.className="tag";g.textContent="edited";t.appendChild(g);}
+    btn.appendChild(t);
+    const h=document.createElement("div");h.className="h";h.textContent=short(b.hash);btn.appendChild(h);
+    btn.addEventListener("click",()=>select(i));
+    el.appendChild(btn);
+  }
+}
+
+function select(i){
+  if(busy)return;sel=i;const b=chain[i];
+  paint(sctx,stage.width,b.L);$("stepline").textContent="Stored painting for block "+i+".";
+  showInfo(b);renderChain();
+}
+
+function clearStatuses(){chain.forEach(b=>{b.status=null;b.reason=null;b.fpMismatch=false;b.linkBroken=false;});}
+
+function setButtons(){
+  const full=chain.length>=VERSES.length;
+  $("bMint").disabled=busy||full;
+  $("bMint").textContent=chain.length===0?"Mint genesis block":full?"All ten verses minted":"Mint block "+chain.length;
+  $("bVerify").disabled=busy||chain.length===0;
+  $("bReset").disabled=busy;
+  $("bAuto").disabled=full&&!auto;
+  $("bEdit").disabled=busy;$("bRemint").disabled=busy;$("bSave").disabled=busy;
+  $("mCanon").disabled=$("mKnock").disabled=busy&&!auto;
+}
+
+async function mintOne(i,steps){
+  const prev=i?chain[i-1].hash:ZERO;
+  const verse=chain[i]?chain[i].verse:VERSES[i][1];
+  const ref=VERSES[i][0];
+  const model=mintWith;
+  const pendingB={height:i,ref,verse,prev,model,edited:false};
+  showInfo(pendingB,true);
+  const L=runModel(MODELS[model].weights,prev,verse);
+  await denoise(stage,L,steps);
+  const fp=fingerprint(L);
+  const b={height:i,ref,verse,prev,model,L,fp,hash:blockHash(i,prev,verse,fp),edited:chain[i]?chain[i].edited&&verse!==VERSES[i][1]:false,status:null};
+  chain[i]=b;sel=i;renderChain();showInfo(b);
+  return b;
+}
+
+async function mintNext(){
+  if(busy||chain.length>=VERSES.length)return;
+  busy=true;setButtons();clearStatuses();
+  const i=chain.length;
+  const b=await mintOne(i,24);
+  log("Block "+i+" minted with the "+MODELS[b.model].short.toLowerCase()+" model. Fingerprint "+short(b.fp)+", linked to "+(i?"block "+(i-1):"nothing, it's the genesis block")+".");
+  busy=false;setButtons();
+  if(auto){
+    if(chain.length<VERSES.length){await sleep(reduce?300:700);if(auto)mintNext();}
+    else{auto=false;$("bAuto").setAttribute("aria-pressed","false");$("bAuto").textContent="Auto-mint";setButtons();log("All ten verses are on chain. Now try Verify chain, then edit a verse and verify again.");}
+  }
+}
+
+async function verify(){
+  if(busy||!chain.length)return;
+  busy=true;setButtons();clearStatuses();renderChain();
+  let firstBad=null;
+  for(let i=0;i<chain.length;i++){
+    const b=chain[i];const expPrev=i?chain[i-1].hash:ZERO;let reason=null;
+    if(b.prev!==expPrev){reason="It points to a previous-block hash that no longer exists, because an earlier block changed.";b.linkBroken=true;}
+    else{
+      const fp=fingerprint(runModel(MODELS.canon.weights,b.prev,b.verse));
+      if(fp!==b.fp){b.fpMismatch=true;
+        reason=b.edited&&b.model==="canon"?"The verse was edited after minting, so the canonical model now paints something different from the stored artwork."
+          :b.model==="knock"?"This painting came from the knockoff model. The canonical model paints something different for the same verse and history."
+          :"The stored artwork doesn't match what the canonical model paints.";}
+      else if(blockHash(i,b.prev,b.verse,fp)!==b.hash)reason="The block hash doesn't match the block's contents.";
+    }
+    b.status=reason?"bad":"ok";b.reason=reason;if(reason&&firstBad===null)firstBad=i;
+    sel=i;paint(sctx,stage.width,b.L);showInfo(b);renderChain();
+    $("stepline").textContent="Repainting block "+i+" with the canonical model to check it.";
+    await sleep(reduce?0:320);
+  }
+  if(firstBad===null){sel=chain.length-1;log("Chain verified. All "+chain.length+" paintings reproduce exactly under the canonical model.");}
+  else{sel=firstBad;const bads=chain.filter(b=>b.status==="bad").length;log("Verification failed at block "+firstBad+". "+bads+" of "+chain.length+" blocks rejected. Select a red block to see why.");}
+  busy=false;select(sel);setButtons();
+}
+
+async function remintFrom(i){
+  if(busy)return;busy=true;setButtons();clearStatuses();
+  for(let j=i;j<chain.length;j++){await mintOne(j,reduce?1:10);}
+  log("Re-minted blocks "+i+" to "+(chain.length-1)+" with the "+MODELS[mintWith].short.toLowerCase()+" model. Run Verify chain to see whether the network accepts them.");
+  busy=false;select(i);setButtons();
+}
+
+function setEditing(on){
+  editing=on;
+  $("iEdit").hidden=!on;$("iVerse").hidden=on;
+  $("bEdit").hidden=on;$("bRemint").hidden=on;$("bSave").hidden=!on;$("bCancel").hidden=!on;
+  if(on){$("iEdit").value=chain[sel].verse;$("iEdit").focus();}
+}
+
+function reset(){
+  chain=[];sel=null;auto=false;$("bAuto").setAttribute("aria-pressed","false");$("bAuto").textContent="Auto-mint";
+  placeholder();$("stepline").textContent="";showInfo(null);renderChain();setButtons();
+  log("The network verifies every block against the canonical model.");
+}
+
+function setModel(m){
+  mintWith=m;$("mCanon").setAttribute("aria-pressed",m==="canon");$("mKnock").setAttribute("aria-pressed",m==="knock");
+  log(m==="canon"?"Minting with the canonical model, the same one validators use.":"Minting with a knockoff: a fine-tuned copy with slightly different weights. Its paintings will look plausible.");
+}
+
+$("bMint").addEventListener("click",mintNext);
+$("bVerify").addEventListener("click",verify);
+$("bReset").addEventListener("click",reset);
+$("bAuto").addEventListener("click",()=>{
+  auto=!auto;$("bAuto").setAttribute("aria-pressed",String(auto));$("bAuto").textContent=auto?"Stop auto-mint":"Auto-mint";
+  setButtons();if(auto&&!busy)mintNext();
+});
+$("mCanon").addEventListener("click",()=>setModel("canon"));
+$("mKnock").addEventListener("click",()=>setModel("knock"));
+$("bEdit").addEventListener("click",()=>{if(sel!==null&&!busy)setEditing(true);});
+$("bCancel").addEventListener("click",()=>setEditing(false));
+$("bSave").addEventListener("click",()=>{
+  const v=$("iEdit").value.trim();if(!v||sel===null)return;
+  const b=chain[sel];if(v===b.verse){setEditing(false);return;}
+  b.verse=v;b.edited=v!==VERSES[sel][1];clearStatuses();
+  showInfo(b);renderChain();
+  log("Block "+sel+"'s verse changed, but its painting and hash are from the original. Run Verify chain to see what the network thinks.");
+});
+$("bRemint").addEventListener("click",()=>{if(sel!==null)remintFrom(sel);});
+
+reset();
+})();
+</script>
+</body>
+</html>

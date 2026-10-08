@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Living Rules: cellular automata discovered by search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E6E8E1; --panel:#F1F2EC; --ink:#1E2622; --muted:#5B665F; --line:#C5CBBF;
+  --eosin:#A8325E; --hema:#3D2C7C; --teal:#2F7D74; --soft:#EAD7DE;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#151A17;--panel:#1C231F;--ink:#E5EAE3;--muted:#9AA69E;--line:#2E3832;--eosin:#E27AA3;--hema:#A79BEA;--teal:#6CC2B6;--soft:#3A2630;}
+}
+:root[data-theme="dark"]{--bg:#151A17;--panel:#1C231F;--ink:#E5EAE3;--muted:#9AA69E;--line:#2E3832;--eosin:#E27AA3;--hema:#A79BEA;--teal:#6CC2B6;--soft:#3A2630;}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding:40px 24px 64px}
+h1{font-family:Spectral,Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(2.3rem,5.5vw,3.6rem);line-height:1.02;margin:0 0 14px;letter-spacing:-.015em}
+h2{font-family:Spectral,Georgia,serif;font-weight:400;font-size:1.5rem;margin:0 0 6px}
+h3{font-family:Spectral,Georgia,serif;font-weight:400;font-size:1.2rem;margin:0 0 4px}
+.lede{max-width:62ch;margin:0 0 32px;font-size:1.08rem}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:40px;align-items:start}
+.dish{position:relative;width:100%;max-width:620px;aspect-ratio:1/1;margin:0 auto;touch-action:none;cursor:crosshair}
+.dish canvas{width:100%;height:100%;display:block}
+.cap{font-size:.88rem;color:var(--muted);margin:10px auto 0;max-width:620px;text-align:center}
+.side{min-width:0}
+.rname{font-family:Spectral,Georgia,serif;font-size:1.6rem;margin:0 0 2px}
+.rmeta{color:var(--muted);font-size:.9rem;margin:0 0 16px}
+.viz{max-width:360px;display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center;margin:0 0 6px}
+.viz canvas{width:100%;height:auto;display:block}
+.vizcap{max-width:360px;display:grid;grid-template-columns:120px 1fr;gap:14px;font-size:.78rem;color:var(--muted);margin:0 0 14px}
+.legend{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:4px;font-size:.88rem}
+.legend li{display:flex;gap:8px;align-items:center}
+.sw{width:10px;height:10px;border-radius:50%;flex:none}
+.meter{margin:0 0 20px}
+.meter .lab{display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:4px}
+.meter .lab b{font-weight:500;font-variant-numeric:tabular-nums}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--eosin);transition:width .4s}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font:inherit;font-size:.93rem;padding:8px 14px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;border-radius:3px}
+button:hover{border-color:var(--eosin)}
+button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible,.tile:focus-visible{outline:2px solid var(--eosin);outline-offset:2px}
+.seg{display:inline-flex;align-items:center;gap:6px;font-size:.88rem;color:var(--muted);margin-top:12px}
+.seg button{padding:6px 11px;font-size:.86rem}
+.seg button[aria-pressed="true"]{background:var(--soft);border-color:var(--eosin);color:var(--ink)}
+.search{margin-top:52px;padding-top:28px;border-top:1px solid var(--line)}
+.shead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:14px 24px;align-items:end;margin-bottom:18px}
+.shead p{margin:0;max-width:60ch;color:var(--muted)}
+.gen{font-size:.9rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.gen b{color:var(--ink);font-weight:500}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}
+.tile{background:none;border:none;padding:0;text-align:left;cursor:pointer;color:var(--ink);border-radius:4px}
+.tile canvas{width:100%;aspect-ratio:1/1;display:block}
+.tile .tl{display:flex;justify-content:space-between;font-size:.84rem;margin-top:6px}
+.tile .tl span:last-child{color:var(--muted);font-variant-numeric:tabular-nums}
+.tile .bar{height:4px;margin-top:4px}
+.tile.best .tl span:first-child{color:var(--eosin);font-weight:500}
+.tile.fresh canvas{animation:none}
+.log{margin:16px 0 0;min-height:1.5em;font-size:.95rem}
+.how{margin-top:48px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px}
+.how p{margin:0;color:var(--muted);font-size:.95rem;max-width:42ch}
+.credit{margin-top:32px;font-size:.85rem;color:var(--muted);max-width:80ch}
+.fallback{padding:24px;border:1px solid var(--line);background:var(--panel)}
+@media (max-width:900px){
+  .wrap{padding:28px 16px 48px}
+  .hero{grid-template-columns:1fr;gap:28px}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  .how{grid-template-columns:1fr;gap:18px}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Living Rules</h1>
+  <p class="lede">Every point on this dish follows the same tiny rule: look around at three distances, then grow or shrink. Nobody drew these shapes. A search found rules whose cells organize themselves into colonies, membranes, worms and cell division.</p>
+
+  <section class="hero">
+    <div>
+      <div class="dish" id="dish"><canvas id="gl" aria-label="Live cellular automaton. Drag to disturb it."></canvas></div>
+      <p class="cap" id="dishcap">Drag across the dish to cut through it, then watch it heal.</p>
+    </div>
+    <div class="side">
+      <p class="rname" id="rname">Rule</p>
+      <p class="rmeta" id="rmeta"></p>
+      <div class="viz"><canvas id="kv" width="240" height="240" aria-label="The three neighborhoods each cell senses"></canvas><canvas id="gv" width="400" height="240" aria-label="How each neighborhood pushes growth up or down"></canvas></div>
+      <div class="vizcap"><span>What a cell senses</span><span>How it responds to each</span></div>
+      <ul class="legend" id="legend"></ul>
+      <div class="meter"><div class="lab"><span>Complexity</span><b id="mscore">measuring</b></div><div class="bar"><i id="mbar"></i></div></div>
+      <div class="row">
+        <button class="primary" id="bPlay">Pause</button>
+        <button id="bSeed">Reseed dish</button>
+      </div>
+      <div class="seg" role="group" aria-label="What dragging does">Drag to
+        <button id="brErase" aria-pressed="true">Cut</button>
+        <button id="brSeed" aria-pressed="false">Seed life</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="search">
+    <div class="shead">
+      <div>
+        <h2>The search</h2>
+        <p>Eight rules compete. Each generation, the dullest ones (dead, frozen or pure static) are replaced by mutated offspring of the most complex. Tap any dish to study it up close.</p>
+      </div>
+      <div>
+        <p class="gen">Generation <b id="gen">0</b></p>
+        <div class="row" style="margin-top:8px">
+          <button id="bEvolve" aria-pressed="true">Pause evolution</button>
+          <button id="bRandom">Start from random rules</button>
+        </div>
+      </div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+    <p class="log" id="log" aria-live="polite"></p>
+  </section>
+
+  <section class="how">
+    <div><h3>One rule, every cell</h3><p>A cell measures the average life in three rings around it: near, middle and far. Each ring feeds a bell curve that says "grow" when the reading is just right and "shrink" otherwise. The weighted sum decides the cell's next value.</p></div>
+    <div><h3>Structure at every scale</h3><p>Because cells sense at several distances at once, small structures sit inside larger ones: spots inside worms, worms inside colonies, membranes around it all. No level is programmed. Each emerges from the one below.</p></div>
+    <div><h3>How the search judges</h3><p>The complexity score is a simple heuristic. It rewards patterns that keep moving, have structure at more than one scale, and neither die out nor boil into noise. It's a small evolutionary search, not a trained model.</p></div>
+  </section>
+  <p class="credit">Built on ideas from Lenia (Bert Wang-Chak Chan) and neural cellular automata (Mordvintsev et al., 2020). The rule is a continuous multi-kernel automaton, essentially a one-layer network that every cell shares. It runs on your GPU.</p>
+</main>
+
+<script>
+(function(){
+"use strict";
+const SEED_POP=[{"dt":0.1081,"k":[{"r":6.1264,"c":0.3781,"w":0.1496,"m":0.3399,"s":0.0478,"h":0.7648},{"r":12.687,"c":0.4263,"w":0.1782,"m":0.2102,"s":0.0261,"h":0.0743},{"r":13.4831,"c":0.3303,"w":0.1553,"m":0.2198,"s":0.0445,"h":0.4335}]},
+{"dt":0.1663,"k":[{"r":5.3886,"c":0.3144,"w":0.109,"m":0.3171,"s":0.028,"h":-0.09},{"r":13.7268,"c":0.4274,"w":0.2477,"m":0.1923,"s":0.0263,"h":0.0196},{"r":6.8484,"c":0.33,"w":0.2742,"m":0.3171,"s":0.0341,"h":0.5014}]},
+{"dt":0.1265,"k":[{"r":14.6905,"c":0.4336,"w":0.1926,"m":0.2202,"s":0.0276,"h":0.6584},{"r":5.6031,"c":0.3904,"w":0.265,"m":0.2541,"s":0.0366,"h":-0.0088},{"r":6.4315,"c":0.4827,"w":0.2974,"m":0.2488,"s":0.0397,"h":0.9842}]},
+{"dt":0.1722,"k":[{"r":8.1534,"c":0.4891,"w":0.2153,"m":0.1908,"s":0.0227,"h":-0.417},{"r":11.2203,"c":0.675,"w":0.1038,"m":0.3164,"s":0.0582,"h":0.2677},{"r":15.6467,"c":0.5819,"w":0.209,"m":0.2159,"s":0.0344,"h":0.4912}]},
+{"dt":0.1182,"k":[{"r":6.1951,"c":0.6244,"w":0.2609,"m":0.2405,"s":0.0186,"h":0.2671},{"r":11.9248,"c":0.4713,"w":0.2728,"m":0.1975,"s":0.0365,"h":-0.4174},{"r":11.1991,"c":0.6066,"w":0.2463,"m":0.1642,"s":0.0596,"h":0.5519}]},
+{"dt":0.149,"k":[{"r":13.3903,"c":0.3595,"w":0.2921,"m":0.1865,"s":0.0598,"h":0.6041},{"r":10.3407,"c":0.4451,"w":0.1193,"m":0.122,"s":0.0422,"h":0.6376},{"r":14.983,"c":0.446,"w":0.2875,"m":0.1742,"s":0.0571,"h":0.8701}]},
+{"dt":0.178,"k":[{"r":6.7701,"c":0.6695,"w":0.2787,"m":0.2671,"s":0.0144,"h":0.4613},{"r":11.6038,"c":0.6089,"w":0.1428,"m":0.3383,"s":0.0545,"h":-0.417},{"r":8.4672,"c":0.313,"w":0.2662,"m":0.3288,"s":0.0595,"h":0.3791}]},
+{"dt":0.1081,"k":[{"r":12.8694,"c":0.4964,"w":0.2349,"m":0.3352,"s":0.0232,"h":0.0452},{"r":8.0268,"c":0.3211,"w":0.2244,"m":0.2571,"s":0.06,"h":0.3616},{"r":9.3572,"c":0.6605,"w":0.1031,"m":0.1757,"s":0.0481,"h":-0.3416}]}];
+const MAIN_N=256, TILE_N=96, SMALL=32;
+const reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $=id=>document.getElementById(id);
+
+/* ---------- WebGL setup ---------- */
+const glc=$("gl");
+const gl=glc.getContext("webgl2",{antialias:false,premultipliedAlpha:true,alpha:true});
+function fail(msg){$("dish").innerHTML='<div class="fallback">'+msg+'</div>';$("dishcap").textContent="";}
+if(!gl){fail("This demo needs WebGL 2, which this browser doesn't provide. Try a current version of Chrome, Firefox, Safari or Edge.");return;}
+if(!gl.getExtension("EXT_color_buffer_float")&&!gl.getExtension("EXT_color_buffer_half_float")){fail("This demo needs floating-point render targets (EXT_color_buffer_float), which this GPU doesn't expose.");return;}
+
+const VS=`#version 300 es
+out vec2 v;
+void main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);v=p;gl_Position=vec4(p*2.0-1.0,0.0,1.0);}`;
+const FS_STEP=`#version 300 es
+precision highp float;
+uniform sampler2D uState;uniform sampler2D uW;uniform int uB;uniform float uPhase;uniform vec2 uSize;
+uniform vec3 uM;uniform vec3 uS;uniform vec3 uH;uniform float uDt;
+out vec4 o;
+void main(){
+  ivec2 ip=ivec2(gl_FragCoord.xy);
+  vec3 U=vec3(0.0);
+  int n=2*uB;
+  for(int j=0;j<40;j++){ if(j>=n) break;
+    for(int i=0;i<40;i++){ if(i>=n) break;
+      vec3 w=texelFetch(uW,ivec2(i,j),0).rgb;
+      if(w.r+w.g+w.b<=0.0) continue;
+      vec2 p=vec2(ip)+vec2(float(2*(i-uB))+1.0-uPhase,float(2*(j-uB))+1.0-uPhase);
+      U+=w*texture(uState,p/uSize).r;
+    }
+  }
+  float A=texelFetch(uState,ip,0).r;
+  vec3 d=U-uM;
+  vec3 g=2.0*exp(-d*d/(2.0*uS*uS))-1.0;
+  float G=dot(uH,g);
+  o=vec4(clamp(A+uDt*G,0.0,1.0),G,A,1.0);
+}`;
+const FS_SHOW=`#version 300 es
+precision highp float;
+in vec2 v;uniform sampler2D uState;uniform float uRing;out vec4 o;
+void main(){
+  vec2 q=v*2.0-1.0;float r=length(q);
+  if(r>1.0){o=vec4(0.0);return;}
+  vec4 s=texture(uState,v);
+  float A=s.r;float G=s.g;
+  vec3 c0=vec3(0.955,0.932,0.940),c1=vec3(0.925,0.600,0.745),c2=vec3(0.690,0.200,0.440),c3=vec3(0.235,0.165,0.470);
+  vec3 col=A<0.35?mix(c0,c1,A/0.35):(A<0.7?mix(c1,c2,(A-0.35)/0.35):mix(c2,c3,(A-0.7)/0.3));
+  float grow=clamp(G*1.6,0.0,1.0)*smoothstep(0.02,0.25,A);
+  col=mix(col,vec3(0.30,0.33,0.80),grow*0.55);
+  float fade=clamp(-G*1.4,0.0,1.0)*smoothstep(0.05,0.4,A);
+  col=mix(col,vec3(0.97,0.80,0.86),fade*0.35);
+  col*=1.0-0.10*smoothstep(0.7,1.0,r);
+  float rim=smoothstep(1.0-uRing*2.2,1.0-uRing*0.8,r);
+  col=mix(col,vec3(0.36,0.33,0.38),rim*0.85);
+  float a=1.0-smoothstep(1.0-uRing*0.8,1.0,r);
+  o=vec4(col*a,a);
+}`;
+const FS_DOWN=`#version 300 es
+precision highp float;
+uniform sampler2D uState;out vec4 o;
+void main(){
+  vec2 base=floor(gl_FragCoord.xy)/32.0;float a=0.0;
+  for(int j=0;j<4;j++)for(int i=0;i<4;i++)a+=texture(uState,base+(vec2(float(i),float(j))+0.5)/128.0).r;
+  o=vec4(a/16.0,0.0,0.0,1.0);
+}`;
+const FS_BRUSH=`#version 300 es
+precision highp float;
+uniform sampler2D uState;uniform vec2 uC;uniform float uR;uniform int uMode;uniform float uSeed;uniform vec2 uSize;out vec4 o;
+void main(){
+  ivec2 ip=ivec2(gl_FragCoord.xy);vec4 s=texelFetch(uState,ip,0);
+  vec2 d=vec2(ip)+0.5-uC;d-=uSize*floor(d/uSize+0.5);
+  float L=length(d);
+  if(L<uR){
+    if(uMode==0){s.r=0.0;}
+    else{float n=fract(sin(dot(vec2(ip)+uSeed,vec2(12.9898,78.233)))*43758.5453);s.r=max(s.r,n);}
+    s.g=0.0;
+  }
+  o=s;
+}`;
+function compile(fs){
+  const p=gl.createProgram();
+  for(const [t,src] of [[gl.VERTEX_SHADER,VS],[gl.FRAGMENT_SHADER,fs]]){
+    const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);
+    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));
+    gl.attachShader(p,s);
+  }
+  gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));
+  const u={};const n=gl.getProgramParameter(p,gl.ACTIVE_UNIFORMS);
+  for(let i=0;i<n;i++){const a=gl.getActiveUniform(p,i);u[a.name]=gl.getUniformLocation(p,a.name);}
+  return{p,u};
+}
+let P;
+try{P={step:compile(FS_STEP),show:compile(FS_SHOW),down:compile(FS_DOWN),brush:compile(FS_BRUSH)};}
+catch(e){fail("The GPU couldn't compile this demo's shaders.");console.error(e);return;}
+gl.bindVertexArray(gl.createVertexArray());
+function stateTex(n,data){
+  const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA16F,n,n,0,gl.RGBA,gl.FLOAT,data);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT);
+  const f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,f);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t,0);
+  return{t,f};
+}
+function dataTex(w,h,data){
+  const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA32F,w,h,0,gl.RGBA,gl.FLOAT,data);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+  return t;
+}
+const small=(()=>{const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,SMALL,SMALL,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+  const f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,f);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t,0);return{t,f};})();
+{ // verify float render target works
+  const test=stateTex(4,null);gl.bindFramebuffer(gl.FRAMEBUFFER,test.f);
+  if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE){fail("This GPU can't render to floating-point textures, which the simulation needs.");return;}
+}
+const smallBuf=new Uint8Array(SMALL*SMALL*4);
+
+/* ---------- Genomes ---------- */
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const gauss=()=>{let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);};
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const clone=g=>JSON.parse(JSON.stringify(g));
+function randomGenome(){return{dt:rnd(0.08,0.2),k:[0,1,2].map(()=>({r:rnd(5,16),c:rnd(0.3,0.7),w:rnd(0.1,0.3),m:rnd(0.1,0.35),s:rnd(0.012,0.06),h:rnd(-0.6,1.0)}))};}
+function mutate(g,rate){
+  const c=clone(g);c.dt=clamp(c.dt+gauss()*0.015,0.06,0.21);
+  c.k.forEach(k=>{
+    if(Math.random()<rate)k.r=clamp(k.r+gauss()*1.4,4.5,16);
+    if(Math.random()<rate)k.c=clamp(k.c+gauss()*0.05,0.25,0.75);
+    if(Math.random()<rate)k.w=clamp(k.w+gauss()*0.03,0.08,0.32);
+    if(Math.random()<rate)k.m=clamp(k.m+gauss()*0.018,0.08,0.38);
+    if(Math.random()<rate)k.s=clamp(k.s+gauss()*0.005,0.01,0.07);
+    if(Math.random()<rate)k.h=clamp(k.h+gauss()*0.12,-0.7,1.0);
+  });
+  if(Math.random()<0.08){c.k[Math.floor(Math.random()*3)]=randomGenome().k[0];}
+  return c;
+}
+function cross(a,b){const c=clone(a);c.k=c.k.map((k,i)=>Math.random()<0.5?clone(b.k[i]):k);c.dt=Math.random()<0.5?a.dt:b.dt;return c;}
+function gname(g){let h=2166136261;const s=JSON.stringify(g);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return "Rule "+((h>>>0).toString(16).slice(-4).toUpperCase().padStart(4,"0"));}
+function kernelOf(k,d){const q=d/k.r;return q<1?Math.exp(-((q-k.c)**2)/(2*k.w*k.w)):0;}
+function buildWeights(g){
+  const rmax=Math.max(...g.k.map(k=>k.r));const B=Math.ceil((rmax+2)/2);const n=2*B;const out=[];
+  for(const ph of [0,1]){
+    const data=new Float32Array(n*n*4);const sums=[0,0,0];
+    for(let j=0;j<n;j++)for(let i=0;i<n;i++){
+      const dx=2*(i-B)+0.5-ph,dy=2*(j-B)+0.5-ph,d=Math.hypot(dx,dy);
+      g.k.forEach((k,c)=>{const w=kernelOf(k,d);data[(j*n+i)*4+c]=w;sums[c]+=w;});
+    }
+    for(let i=0;i<n*n;i++)for(let c=0;c<3;c++)data[i*4+c]/=(sums[c]||1);
+    out.push(dataTex(n,n,data));
+  }
+  return{B,tex:out};
+}
+
+/* ---------- Simulations ---------- */
+function seedData(n){
+  const d=new Float32Array(n*n*4);
+  const blobs=Math.max(3,Math.round(n*n/(128*128)*6));
+  for(let b=0;b<blobs;b++){
+    const s=10+Math.floor(Math.random()*14),x0=Math.floor(Math.random()*n),y0=Math.floor(Math.random()*n);
+    for(let y=0;y<s;y++)for(let x=0;x<s;x++){const i=(((y0+y)%n)*n+((x0+x)%n))*4;d[i]=Math.random();d[i+2]=d[i];}
+  }
+  for(let i=3;i<d.length;i+=4)d[i]=1;
+  return d;
+}
+function makeSim(n,g){
+  const s={n,tex:[stateTex(n,seedData(n)),stateTex(n,null)],cur:0,phase:0,age:0,score:0,raw:0,prev:null,m:-1};
+  setGenome(s,g,false);return s;
+}
+function setGenome(s,g,reseed){
+  if(s.w){s.w.tex.forEach(t=>gl.deleteTexture(t));}
+  s.g=clone(g);s.w=buildWeights(s.g);s.name=gname(s.g);
+  if(reseed!==false)reseedSim(s);
+}
+function reseedSim(s){
+  gl.bindTexture(gl.TEXTURE_2D,s.tex[s.cur].t);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA16F,s.n,s.n,0,gl.RGBA,gl.FLOAT,seedData(s.n));
+  s.age=0;s.score=0;s.raw=0;s.prev=null;s.m=-1;
+}
+function step(s){
+  const pr=P.step,u=pr.u,k=s.g.k;
+  gl.useProgram(pr.p);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,s.tex[1-s.cur].f);gl.viewport(0,0,s.n,s.n);
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,s.tex[s.cur].t);gl.uniform1i(u.uState,0);
+  gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,s.w.tex[s.phase]);gl.uniform1i(u.uW,1);
+  gl.uniform1i(u.uB,s.w.B);gl.uniform1f(u.uPhase,s.phase);gl.uniform2f(u.uSize,s.n,s.n);
+  gl.uniform3f(u.uM,k[0].m,k[1].m,k[2].m);gl.uniform3f(u.uS,k[0].s,k[1].s,k[2].s);gl.uniform3f(u.uH,k[0].h,k[1].h,k[2].h);
+  gl.uniform1f(u.uDt,s.g.dt);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+  s.cur=1-s.cur;s.phase^=1;s.age++;
+}
+function brush(s,cx,cy,r,mode){
+  const pr=P.brush,u=pr.u;gl.useProgram(pr.p);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,s.tex[1-s.cur].f);gl.viewport(0,0,s.n,s.n);
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,s.tex[s.cur].t);gl.uniform1i(u.uState,0);
+  gl.uniform2f(u.uC,cx,cy);gl.uniform1f(u.uR,r);gl.uniform1i(u.uMode,mode);gl.uniform1f(u.uSeed,Math.random()*1000);gl.uniform2f(u.uSize,s.n,s.n);
+  gl.drawArrays(gl.TRIANGLES,0,3);s.cur=1-s.cur;
+}
+function measure(s){
+  const pr=P.down;gl.useProgram(pr.p);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,small.f);gl.viewport(0,0,SMALL,SMALL);
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,s.tex[s.cur].t);gl.uniform1i(pr.u.uState,0);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+  gl.readPixels(0,0,SMALL,SMALL,gl.RGBA,gl.UNSIGNED_BYTE,smallBuf);
+  const A=new Float32Array(SMALL*SMALL);let m=0;
+  for(let i=0;i<A.length;i++){A[i]=smallBuf[i*4]/255;m+=A[i];}
+  m/=A.length;let v=0;for(const a of A)v+=(a-m)*(a-m);v/=A.length;
+  let v8=0;for(let by=0;by<8;by++)for(let bx=0;bx<8;bx++){let t=0;for(let y=0;y<4;y++)for(let x=0;x<4;x++)t+=A[(by*4+y)*SMALL+bx*4+x];t/=16;v8+=(t-m)*(t-m);}v8/=64;
+  let act=0;if(s.prev){for(let i=0;i<A.length;i++)act+=Math.abs(A[i]-s.prev[i]);act/=A.length;}
+  s.prev=A;s.m=m;
+  let sc=0;
+  if(m>0.015&&m<0.62&&act>0){
+    const spread=v8/(v+1e-6);
+    sc=Math.sqrt(v)*(act/(act+0.015))*(0.3+Math.min(spread,1))*(act>0.12?0.55:1);
+  }
+  s.raw=sc;s.score=s.score?s.score*0.7+sc*0.3:sc;
+}
+const toPct=sc=>Math.round(clamp(sc*520,0,100));
+
+/* ---------- Display ---------- */
+function show(s,w,h,ring){
+  const pr=P.show;gl.useProgram(pr.p);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,w,h);
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,s.tex[s.cur].t);gl.uniform1i(pr.u.uState,0);
+  gl.uniform1f(pr.u.uRing,ring);
+  gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+}
+
+/* ---------- State ---------- */
+const main=makeSim(MAIN_N,SEED_POP[0]);
+const pop=SEED_POP.map(g=>makeSim(TILE_N,g));
+let running=!reduce,evolving=true,brushMode=0,gen=0,frame=0,lastGen=performance.now(),ftime=16,tileEvery=1;
+const tilesEl=$("tiles");
+const tileUI=pop.map((s,i)=>{
+  const b=document.createElement("button");b.className="tile";b.setAttribute("aria-label","Open this rule in the large dish");
+  b.innerHTML='<canvas></canvas><div class="tl"><span></span><span></span></div><div class="bar"><i></i></div>';
+  tilesEl.appendChild(b);
+  b.addEventListener("click",()=>{setGenome(main,pop[i].g);describe();log(pop[i].name+" is now in the large dish. Drag across it to see how it heals.");window.scrollTo({top:0,behavior:reduce?"auto":"smooth"});});
+  const c=b.querySelector("canvas");
+  return{b,c,ctx:c.getContext("2d"),name:b.querySelector(".tl span"),sc:b.querySelector(".tl span:last-child"),bar:b.querySelector(".bar i")};
+});
+function log(t){$("log").textContent=t;}
+
+function sizeCanvases(){
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  const r=$("dish").getBoundingClientRect();const W=Math.max(200,Math.round(r.width*dpr));
+  glc.width=W;glc.height=W;
+  tileUI.forEach(t=>{const w=Math.max(80,Math.round(t.c.getBoundingClientRect().width*dpr));t.c.width=Math.min(w,W);t.c.height=Math.min(w,W);});
+}
+window.addEventListener("resize",sizeCanvases);
+
+/* ---------- Side panel ---------- */
+const KCOL=["#A8325E","#3D2C7C","#2F7D74"];
+function describe(){
+  const g=main.g;$("rname").textContent=main.name;
+  const order=[0,1,2].sort((a,b)=>g.k[a].r-g.k[b].r);const labels=["Near","Middle","Far"];
+  $("rmeta").textContent="Senses out to "+Math.round(Math.max(...g.k.map(k=>k.r)))+" cells away, three rings, step size "+g.dt.toFixed(2)+".";
+  // kernel disc
+  const kv=$("kv"),kx=kv.getContext("2d"),S=kv.width,R=16.5,img=kx.createImageData(S,S);
+  const rgb=KCOL.map(h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]);
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){
+    const d=Math.hypot(x-S/2+0.5,y-S/2+0.5)/(S/2)*R;const i=(y*S+x)*4;
+    if(d>R){img.data[i+3]=0;continue;}
+    let r=245,gg=240,b=242;
+    g.k.forEach((k,c)=>{const a=kernelOf(k,d)*0.85;r=r*(1-a)+rgb[c][0]*a;gg=gg*(1-a)+rgb[c][1]*a;b=b*(1-a)+rgb[c][2]*a;});
+    img.data[i]=r;img.data[i+1]=gg;img.data[i+2]=b;img.data[i+3]=255;
+  }
+  kx.putImageData(img,0,0);kx.beginPath();kx.arc(S/2,S/2,S/2/R*1.2,0,Math.PI*2);kx.fillStyle="#1E2622";kx.fill();
+  // growth curves
+  const gv=$("gv"),gx=gv.getContext("2d"),Wd=gv.width,H=gv.height;gx.clearRect(0,0,Wd,H);
+  const cs=getComputedStyle(document.documentElement);const line=cs.getPropertyValue("--line").trim(),muted=cs.getPropertyValue("--muted").trim();
+  const y0=H/2;gx.strokeStyle=line;gx.lineWidth=2;gx.beginPath();gx.moveTo(0,y0);gx.lineTo(Wd,y0);gx.stroke();
+  gx.fillStyle=muted;gx.font="22px 'IBM Plex Sans',system-ui,sans-serif";gx.fillText("grow",6,26);gx.fillText("shrink",6,H-10);
+  const hmax=Math.max(...g.k.map(k=>Math.abs(k.h)),0.1);
+  g.k.forEach((k,c)=>{gx.strokeStyle=KCOL[c];gx.lineWidth=4;gx.beginPath();
+    for(let x=0;x<=Wd;x+=2){const u=x/Wd*0.5;const G=k.h*(2*Math.exp(-((u-k.m)**2)/(2*k.s*k.s))-1);const y=y0-G/hmax*(H/2-14);x?gx.lineTo(x,y):gx.moveTo(x,y);}
+    gx.stroke();});
+  const L=$("legend");L.innerHTML="";
+  order.forEach((ci,idx)=>{const k=g.k[ci];const li=document.createElement("li");
+    const eff=Math.abs(k.h)<0.08?"barely matters":k.h>0?"feeds growth":"holds growth back";
+    li.innerHTML='<span class="sw" style="background:'+KCOL[ci]+'"></span><span>'+labels[idx]+" ring, "+k.r.toFixed(1)+" cells out, "+eff+"</span>";L.appendChild(li);});
+}
+
+/* ---------- Evolution ---------- */
+function evolve(){
+  const ranked=pop.map((s,i)=>({s,i})).sort((a,b)=>b.s.score-a.s.score);
+  const top=ranked.slice(0,4);const losers=ranked.slice(-3);
+  const pickParent=()=>{const tot=top.reduce((a,t)=>a+t.s.score+1e-4,0);let r=Math.random()*tot;for(const t of top){r-=t.s.score+1e-4;if(r<=0)return t.s;}return top[0].s;};
+  losers.forEach(l=>{
+    const a=pickParent(),b=pickParent();
+    const child=mutate(a===b?a.g:cross(a.g,b.g),0.35);
+    setGenome(l.s,child);tileUI[l.i].b.classList.add("fresh");
+  });
+  gen++;$("gen").textContent=gen;
+  const best=ranked[0].s;
+  log("Generation "+gen+": replaced the three weakest rules with offspring of the best. Leader is "+best.name+" at complexity "+toPct(best.score)+".");
+}
+
+/* ---------- Loop ---------- */
+let lastT=performance.now();
+function loop(now){
+  const dtf=now-lastT;lastT=now;ftime=ftime*0.95+dtf*0.05;
+  tileEvery=ftime>45?3:ftime>26?2:1;
+  if(running){
+    step(main);
+    if(frame%tileEvery===0)pop.forEach(step);
+    frame++;
+    if(frame%20===0)measure(main);
+    if(frame%3===0)measure(pop[Math.floor(frame/3)%pop.length]);
+    pop.forEach(s=>{if(s.age>200&&s.m>=0&&s.m<0.008&&evolving){setGenome(s,mutate(pop.slice().sort((a,b)=>b.score-a.score)[0].g,0.5));}});
+    if(evolving&&now-lastGen>(reduce?9000:7000)&&pop.every(s=>s.age>120)){lastGen=now;evolve();}
+  }
+  // draw tiles first, copying from the GL canvas, then the main dish last
+  const bestI=pop.reduce((b,s,i)=>s.score>pop[b].score?i:b,0);
+  tileUI.forEach((t,i)=>{
+    const w=t.c.width;if(!w)return;
+    show(pop[i],w,w,0.035);
+    t.ctx.clearRect(0,0,w,w);t.ctx.drawImage(glc,0,glc.height-w,w,w,0,0,w,w);
+    const s=pop[i];t.name.textContent=s.name;t.sc.textContent=s.age<120?"new":String(toPct(s.score));
+    t.bar.style.width=(s.age<120?0:toPct(s.score))+"%";t.b.classList.toggle("best",i===bestI&&s.score>0);
+    if(s.age>60)t.b.classList.remove("fresh");
+  });
+  show(main,glc.width,glc.height,0.018);
+  if(frame%20===0){const p=toPct(main.score);$("mscore").textContent=main.age<60?"measuring":String(p);$("mbar").style.width=(main.age<60?0:p)+"%";}
+  requestAnimationFrame(loop);
+}
+
+/* ---------- Interaction ---------- */
+const dish=$("dish");let dragging=false,lastP=null;
+function paintAt(e){
+  const r=glc.getBoundingClientRect();const x=(e.clientX-r.left)/r.width,y=1-(e.clientY-r.top)/r.height;
+  if(Math.hypot(x-0.5,y-0.5)>0.5)return;
+  const cx=x*MAIN_N,cy=y*MAIN_N;
+  if(lastP){const d=Math.hypot(cx-lastP[0],cy-lastP[1]);const n=Math.ceil(d/4);for(let i=1;i<=n;i++)brush(main,lastP[0]+(cx-lastP[0])*i/n,lastP[1]+(cy-lastP[1])*i/n,brushMode?10:8,brushMode);}
+  else brush(main,cx,cy,brushMode?10:8,brushMode);
+  lastP=[cx,cy];
+}
+dish.addEventListener("pointerdown",e=>{dragging=true;lastP=null;dish.setPointerCapture(e.pointerId);paintAt(e);});
+dish.addEventListener("pointermove",e=>{if(dragging)paintAt(e);});
+const endDrag=()=>{dragging=false;lastP=null;};
+dish.addEventListener("pointerup",endDrag);dish.addEventListener("pointercancel",endDrag);
+
+$("bPlay").addEventListener("click",()=>{running=!running;$("bPlay").textContent=running?"Pause":"Play";});
+$("bSeed").addEventListener("click",()=>{reseedSim(main);});
+function setBrush(m){brushMode=m;$("brErase").setAttribute("aria-pressed",String(m===0));$("brSeed").setAttribute("aria-pressed",String(m===1));$("dishcap").textContent=m?"Drag to sprinkle living noise and watch the rule organize it.":"Drag across the dish to cut through it, then watch it heal.";}
+$("brErase").addEventListener("click",()=>setBrush(0));$("brSeed").addEventListener("click",()=>setBrush(1));
+$("bEvolve").addEventListener("click",()=>{evolving=!evolving;$("bEvolve").textContent=evolving?"Pause evolution":"Resume evolution";$("bEvolve").setAttribute("aria-pressed",String(evolving));lastGen=performance.now();});
+$("bRandom").addEventListener("click",()=>{pop.forEach(s=>setGenome(s,randomGenome()));gen=0;$("gen").textContent="0";lastGen=performance.now();
+  log("Eight random rules. Most will die or freeze. Watch the search find life among them over the next few generations.");});
+if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener("change",describe);
+
+if(reduce){$("bPlay").textContent="Play";log("Motion is paused because your system prefers reduced motion. Press Play to start.");}
+else log("The search is running. Every seven seconds, the weakest rules are replaced.");
+sizeCanvases();describe();
+// warm up so the first view already shows structure
+for(let i=0;i<60;i++){step(main);pop.forEach(step);}
+requestAnimationFrame(t=>{lastT=t;loop(t);});
+})();
+</script>
+</body>
+</html>

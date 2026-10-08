@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bloom Chain: prompts grown into living drawings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E6E8E1; --panel:#F1F2EC; --ink:#1E2622; --muted:#5B665F; --line:#C5CBBF;
+  --eosin:#A8325E; --soft:#EAD7DE; --field:#FAFBF7;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#151A17;--panel:#1C231F;--ink:#E5EAE3;--muted:#9AA69E;--line:#2E3832;--eosin:#E27AA3;--soft:#3A2630;--field:#101512;}
+}
+:root[data-theme="dark"]{--bg:#151A17;--panel:#1C231F;--ink:#E5EAE3;--muted:#9AA69E;--line:#2E3832;--eosin:#E27AA3;--soft:#3A2630;--field:#101512;}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding:40px 24px 64px}
+h1{font-family:Spectral,Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(2.3rem,5.5vw,3.6rem);line-height:1.02;margin:0 0 14px;letter-spacing:-.015em}
+h2{font-family:Spectral,Georgia,serif;font-weight:400;font-size:1.5rem;margin:0 0 10px}
+h3{font-family:Spectral,Georgia,serif;font-weight:400;font-size:1.2rem;margin:0 0 4px}
+.lede{max-width:62ch;margin:0 0 32px;font-size:1.08rem}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:40px;align-items:start}
+.sheet{position:relative;width:100%;max-width:600px;aspect-ratio:1/1;margin:0 auto;border-radius:6px;overflow:hidden;box-shadow:0 1px 0 var(--line),0 0 0 1px var(--line)}
+.sheet canvas{width:100%;height:100%;display:block}
+.sheet .busy{position:absolute;inset:auto 12px 12px 12px;padding:8px 12px;background:rgba(30,38,34,.82);color:#F1F2EC;border-radius:4px;font-size:.9rem;display:none}
+.sheet.working .busy{display:block}
+.side{min-width:0}
+.lnum{font-size:.88rem;color:var(--muted);margin:0 0 2px}
+.ltitle{font-family:Spectral,Georgia,serif;font-size:1.7rem;line-height:1.15;margin:0 0 6px}
+.linterp{margin:0 0 14px;max-width:44ch}
+.legend{list-style:none;margin:0 0 22px;padding:0;display:grid;gap:5px;font-size:.9rem}
+.legend li{display:flex;gap:9px;align-items:center}
+.sw{width:14px;height:14px;border-radius:3px;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.legend .b{color:var(--muted)}
+label{display:block;font-size:.88rem;color:var(--muted);margin-bottom:5px}
+textarea{width:100%;min-height:4.6em;font:inherit;font-size:1rem;padding:10px 12px;border:1px solid var(--line);background:var(--field);color:var(--ink);border-radius:4px;resize:vertical}
+textarea:focus-visible{outline:2px solid var(--eosin);outline-offset:1px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+button{font:inherit;font-size:.93rem;padding:8px 14px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;border-radius:3px}
+button:hover:not(:disabled){border-color:var(--eosin)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible{outline:2px solid var(--eosin);outline-offset:2px}
+.dream{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.dream p{margin:0 0 8px;font-size:.9rem;color:var(--muted)}
+.dream q{font-family:Spectral,Georgia,serif;font-style:italic;font-size:1.05rem;color:var(--ink)}
+.status{margin:12px 0 0;min-height:1.5em;font-size:.92rem}
+.status.err{color:var(--eosin)}
+.chainsec{margin-top:48px;padding-top:26px;border-top:1px solid var(--line)}
+.chainsec > p{margin:0 0 16px;color:var(--muted);max-width:66ch}
+.chainwrap{overflow-x:auto;padding:4px 2px 14px}
+.chain{display:flex;align-items:stretch;width:max-content}
+.link{align-self:center;width:24px;height:2px;background:var(--eosin);flex:none;opacity:.6}
+.lk{flex:none;width:176px;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:8px;text-align:left;cursor:pointer;color:var(--ink);display:flex;flex-direction:column;gap:4px;font:inherit}
+.lk.cur{border-color:var(--eosin);box-shadow:0 0 0 1px var(--eosin)}
+.lk canvas{width:100%;aspect-ratio:1/1;display:block;border-radius:3px;background:var(--field)}
+.lk .n{font-size:.75rem;color:var(--muted)}
+.lk .p{font-family:Spectral,Georgia,serif;font-size:1rem;line-height:1.2}
+.lk .h{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:.68rem;color:var(--muted)}
+.how{margin-top:44px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px}
+.how p{margin:0;color:var(--muted);font-size:.95rem;max-width:42ch}
+.credit{margin-top:30px;font-size:.85rem;color:var(--muted);max-width:80ch}
+.fallback{padding:24px;background:var(--panel)}
+@media (max-width:900px){.wrap{padding:28px 16px 48px}.hero{grid-template-columns:1fr;gap:26px}.how{grid-template-columns:1fr;gap:18px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Bloom Chain</h1>
+  <p class="lede">Describe something. Claude sketches it as seeds and chooses a living rule for every part, then millions of cell updates grow it into tissue. Each new prompt is handed Claude's previous answer, so the scene evolves link by link and the living texture flows from one drawing into the next.</p>
+
+  <section class="hero">
+    <div>
+      <div class="sheet" id="sheet"><canvas id="gl" aria-label="The living drawing"></canvas><div class="busy" id="busy">Claude is imagining the next link…</div></div>
+    </div>
+    <div class="side">
+      <p class="lnum" id="lnum">Link 1</p>
+      <p class="ltitle" id="ltitle"></p>
+      <p class="linterp" id="linterp"></p>
+      <ul class="legend" id="legend"></ul>
+      <label for="prompt">Next prompt, built on this link</label>
+      <textarea id="prompt" placeholder="Bees arrive, and the petals open wider"></textarea>
+      <div class="row">
+        <button class="primary" id="bGrow">Grow the next link</button>
+        <button id="bStop" hidden>Stop</button>
+        <button id="bNew">Start a new chain</button>
+      </div>
+      <div class="dream" id="dream">
+        <p>Or let Claude continue its own story:</p>
+        <q id="nextIdea"></q>
+        <div class="row"><button id="bDream">Dream the next link</button></div>
+      </div>
+      <p class="status" id="status" role="status"></p>
+    </div>
+  </section>
+
+  <section class="chainsec">
+    <h2>The chain</h2>
+    <p>Every link stores its prompt, Claude's response and a hash that includes the link before it. Tap a link to grow it again.</p>
+    <div class="chainwrap"><div class="chain" id="chain"></div></div>
+  </section>
+
+  <section class="how">
+    <div><h3>Words into seeds</h3><p>Claude turns your prompt into a sketch made of simple shapes, splits it into up to four living tissues, and picks a color and a behavior for each: membranes, stripes, swarms, mazes.</p></div>
+    <div><h3>Seeds into life</h3><p>Every cell runs a small continuous rule that senses its neighbors at three distances. Tissue can only live inside its own part of the sketch, so the drawing holds its shape while its surface keeps moving.</p></div>
+    <div><h3>Links into a chain</h3><p>Each prompt is answered with the previous response in hand, and the cells carry over rather than restarting. The scene is the sum of every link so far.</p></div>
+  </section>
+  <p class="credit">New links are drawn by Claude using your own Claude usage; you'll be asked to allow it the first time. The first three links are a hand-made example so the page works without it. Cell rules come from the Living Rules search, based on Lenia.</p>
+</main>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const N=192, KSCALE=0.8;
+const BEHAVIORS={
+ membranes:{"dt":0.1081,"k":[{"r":6.1264,"c":0.3781,"w":0.1496,"m":0.3399,"s":0.0478,"h":0.7648},{"r":12.687,"c":0.4263,"w":0.1782,"m":0.2102,"s":0.0261,"h":0.0743},{"r":13.4831,"c":0.3303,"w":0.1553,"m":0.2198,"s":0.0445,"h":0.4335}]},
+ dots:{"dt":0.1663,"k":[{"r":5.3886,"c":0.3144,"w":0.109,"m":0.3171,"s":0.028,"h":-0.09},{"r":13.7268,"c":0.4274,"w":0.2477,"m":0.1923,"s":0.0263,"h":0.0196},{"r":6.8484,"c":0.33,"w":0.2742,"m":0.3171,"s":0.0341,"h":0.5014}]},
+ beads:{"dt":0.1265,"k":[{"r":14.6905,"c":0.4336,"w":0.1926,"m":0.2202,"s":0.0276,"h":0.6584},{"r":5.6031,"c":0.3904,"w":0.265,"m":0.2541,"s":0.0366,"h":-0.0088},{"r":6.4315,"c":0.4827,"w":0.2974,"m":0.2488,"s":0.0397,"h":0.9842}]},
+ maze:{"dt":0.1722,"k":[{"r":8.1534,"c":0.4891,"w":0.2153,"m":0.1908,"s":0.0227,"h":-0.417},{"r":11.2203,"c":0.675,"w":0.1038,"m":0.3164,"s":0.0582,"h":0.2677},{"r":15.6467,"c":0.5819,"w":0.209,"m":0.2159,"s":0.0344,"h":0.4912}]},
+ swarm:{"dt":0.1182,"k":[{"r":6.1951,"c":0.6244,"w":0.2609,"m":0.2405,"s":0.0186,"h":0.2671},{"r":11.9248,"c":0.4713,"w":0.2728,"m":0.1975,"s":0.0365,"h":-0.4174},{"r":11.1991,"c":0.6066,"w":0.2463,"m":0.1642,"s":0.0596,"h":0.5519}]},
+ wash:{"dt":0.149,"k":[{"r":13.3903,"c":0.3595,"w":0.2921,"m":0.1865,"s":0.0598,"h":0.6041},{"r":10.3407,"c":0.4451,"w":0.1193,"m":0.122,"s":0.0422,"h":0.6376},{"r":14.983,"c":0.446,"w":0.2875,"m":0.1742,"s":0.0571,"h":0.8701}]},
+ clusters:{"dt":0.178,"k":[{"r":6.7701,"c":0.6695,"w":0.2787,"m":0.2671,"s":0.0144,"h":0.4613},{"r":11.6038,"c":0.6089,"w":0.1428,"m":0.3383,"s":0.0545,"h":-0.417},{"r":8.4672,"c":0.313,"w":0.2662,"m":0.3288,"s":0.0595,"h":0.3791}]},
+ stripes:{"dt":0.1081,"k":[{"r":12.8694,"c":0.4964,"w":0.2349,"m":0.3352,"s":0.0232,"h":0.0452},{"r":8.0268,"c":0.3211,"w":0.2244,"m":0.2571,"s":0.06,"h":0.3616},{"r":9.3572,"c":0.6605,"w":0.1031,"m":0.1757,"s":0.0481,"h":-0.3416}]}
+};
+const BLABEL={membranes:"membranes, restless rings",dots:"still lattice of dots",beads:"dots and short strands",maze:"meandering bands",swarm:"restless specks",wash:"flowing tissue",clusters:"blobby clusters",stripes:"fingerprint stripes"};
+
+/* ---------- Example chain (hand-made, used before any Claude call) ---------- */
+const PRESETS=[
+ {prompt:"A flower with many colors",spec:{title:"Many-colored flower",interpretation:"Six magenta outer petals around violet inner petals and a golden center, on a striped green stem with two leaves.",background:"#F3F0E8",
+  species:[{name:"Outer petals",color:"#C2366B",deep:"#6E1240",behavior:"membranes"},{name:"Golden center",color:"#E0A526",deep:"#8A5A0C",behavior:"dots"},{name:"Stem and leaves",color:"#3E8E4F",deep:"#1D4F2A",behavior:"stripes"},{name:"Inner petals",color:"#6A4BC4",deep:"#2E1F6B",behavior:"beads"}],
+  shapes:[{type:"line",x1:50,y1:52,x2:50,y2:96,width:6,species:2},{type:"ellipse",x:37,y:80,rx:13,ry:6,angle:-28,species:2},{type:"ellipse",x:63,y:72,rx:13,ry:6,angle:28,species:2},
+   {type:"petals",x:50,y:36,count:6,length:30,width:17,angle:0,species:0},{type:"petals",x:50,y:36,count:6,length:18,width:11,angle:30,species:3},{type:"circle",x:50,y:36,r:8,species:1}],
+  next:"Bees arrive, and the petals open wider"}},
+ {prompt:"Bees arrive, and the petals open wider",spec:{title:"Bees at the bloom",interpretation:"The outer petals stretch wide while three golden bees hover around the flower in a swarm of restless specks.",background:"#F3F0E8",
+  species:[{name:"Outer petals",color:"#C2366B",deep:"#6E1240",behavior:"membranes"},{name:"Bees",color:"#E0A526",deep:"#4A3208",behavior:"swarm"},{name:"Stem and leaves",color:"#3E8E4F",deep:"#1D4F2A",behavior:"stripes"},{name:"Inner petals",color:"#6A4BC4",deep:"#2E1F6B",behavior:"beads"}],
+  shapes:[{type:"line",x1:50,y1:52,x2:50,y2:96,width:6,species:2},{type:"ellipse",x:37,y:80,rx:13,ry:6,angle:-28,species:2},{type:"ellipse",x:63,y:72,rx:13,ry:6,angle:28,species:2},
+   {type:"petals",x:50,y:36,count:7,length:36,width:18,angle:10,species:0},{type:"petals",x:50,y:36,count:6,length:20,width:11,angle:30,species:3},{type:"circle",x:50,y:36,r:8,species:1},
+   {type:"ellipse",x:17,y:16,rx:9,ry:6,angle:-15,species:1},{type:"ellipse",x:84,y:22,rx:9,ry:6,angle:20,species:1},{type:"ellipse",x:83,y:62,rx:8,ry:5.5,angle:-10,species:1}],
+  next:"Autumn comes and the flower goes to seed"}},
+ {prompt:"Autumn comes and the flower goes to seed",spec:{title:"Gone to seed",interpretation:"The petals fall to the ground as scattered rust-colored shapes, the center swells into a dense seed head, and seeds drift away on the wind.",background:"#F2EDE3",
+  species:[{name:"Fallen petals",color:"#B4552F",deep:"#5E2412",behavior:"membranes"},{name:"Seed head",color:"#8A6A2A",deep:"#3A2A0A",behavior:"clusters"},{name:"Dry stem",color:"#8C7A4B",deep:"#4A3E1E",behavior:"maze"},{name:"Drifting seeds",color:"#6A4BC4",deep:"#2E1F6B",behavior:"swarm"}],
+  shapes:[{type:"line",x1:50,y1:50,x2:52,y2:96,width:6,species:2},{type:"ellipse",x:40,y:84,rx:11,ry:4,angle:-12,species:2},
+   {type:"circle",x:50,y:38,r:15,species:1},{type:"ellipse",x:22,y:90,rx:13,ry:6,angle:8,species:0},{type:"ellipse",x:76,y:90,rx:14,ry:6,angle:-6,species:0},{type:"ellipse",x:88,y:80,rx:9,ry:5.5,angle:30,species:0},
+   {type:"circle",x:74,y:20,r:6.5,species:3},{type:"circle",x:88,y:12,r:5.5,species:3},{type:"circle",x:88,y:32,r:5,species:3}],
+  next:"Winter snow covers the seeds, waiting for spring"}}
+];
+
+/* ---------- WebGL ---------- */
+const glc=$("gl");
+const gl=glc.getContext("webgl2",{antialias:false,premultipliedAlpha:true,alpha:false});
+function fail(msg){$("sheet").innerHTML='<div class="fallback">'+msg+'</div>';}
+if(!gl){fail("This demo needs WebGL 2. Try a current version of Chrome, Firefox, Safari or Edge.");return;}
+if(!gl.getExtension("EXT_color_buffer_float")&&!gl.getExtension("EXT_color_buffer_half_float")){fail("This demo needs floating-point render targets, which this GPU doesn't expose.");return;}
+const VS=`#version 300 es
+out vec2 v;void main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);v=p;gl_Position=vec4(p*2.0-1.0,0.0,1.0);}`;
+const COMMON=`
+float h21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
+float vnoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+ return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y);}`;
+const FS_STEP=`#version 300 es
+precision highp float;
+uniform sampler2D uState,uW0,uW1,uW2,uMA,uMB;uniform float uMix,uPhase,uTime;uniform int uB;uniform vec2 uSize;
+uniform vec4 uM0,uM1,uM2,uS0,uS1,uS2,uH0,uH1,uH2,uDt;
+out vec4 o;`+COMMON+`
+void main(){
+  ivec2 ip=ivec2(gl_FragCoord.xy);
+  vec4 U0=vec4(0.0),U1=vec4(0.0),U2=vec4(0.0);
+  int n=2*uB;
+  for(int j=0;j<40;j++){if(j>=n)break;
+    for(int i=0;i<40;i++){if(i>=n)break;
+      ivec2 q=ivec2(i,j);vec4 w0=texelFetch(uW0,q,0),w1=texelFetch(uW1,q,0),w2=texelFetch(uW2,q,0);
+      if(dot(w0+w1+w2,vec4(1.0))<=0.0)continue;
+      vec2 p=vec2(ip)+vec2(float(2*(i-uB))+1.0-uPhase,float(2*(j-uB))+1.0-uPhase);
+      vec4 s=texture(uState,p/uSize);
+      U0+=w0*s;U1+=w1*s;U2+=w2*s;
+    }}
+  vec4 A=texelFetch(uState,ip,0);
+  vec4 d0=U0-uM0,d1=U1-uM1,d2=U2-uM2;
+  vec4 G=uH0*(2.0*exp(-d0*d0/(2.0*uS0*uS0))-1.0)+uH1*(2.0*exp(-d1*d1/(2.0*uS1*uS1))-1.0)+uH2*(2.0*exp(-d2*d2/(2.0*uS2*uS2))-1.0);
+  vec2 uv=(vec2(ip)+0.5)/uSize;
+  vec4 mk=mix(texture(uMA,uv),texture(uMB,uv),uMix);
+  float r=h21(vec2(ip)+vec2(uTime*13.1,uTime*7.7));
+  vec4 An=A+uDt*G*mk-(1.0-mk)*0.05+mk*step(0.997,r)*0.45;
+  o=clamp(An,0.0,1.0);
+}`;
+const FS_SEED=`#version 300 es
+precision highp float;
+uniform sampler2D uState,uMask;uniform float uSeed,uAmt;uniform vec2 uSize;out vec4 o;`+COMMON+`
+void main(){
+  ivec2 ip=ivec2(gl_FragCoord.xy);vec4 A=texelFetch(uState,ip,0);
+  vec2 uv=(vec2(ip)+0.5)/uSize;vec4 mk=texture(uMask,uv);
+  vec4 nz=vec4(vnoise(vec2(ip)/5.0+uSeed),vnoise(vec2(ip)/5.0+uSeed+17.0),vnoise(vec2(ip)/5.0+uSeed+41.0),vnoise(vec2(ip)/5.0+uSeed+73.0));
+  vec4 fine=vec4(h21(vec2(ip)+uSeed),h21(vec2(ip)+uSeed+3.0),h21(vec2(ip)+uSeed+5.0),h21(vec2(ip)+uSeed+9.0));
+  vec4 add=step(vec4(0.55),nz)*fine*mk*min(uAmt,1.0);
+  o=max(A*(1.0-step(2.0,uAmt)),add);
+}`;
+const FS_SHOW=`#version 300 es
+precision highp float;
+in vec2 v;uniform sampler2D uState,uMA,uMB;uniform float uMix;uniform vec3 uBg;uniform vec3 uC[4];uniform vec3 uD[4];out vec4 o;
+void main(){
+  vec4 s=texture(uState,v);vec4 mk=mix(texture(uMA,v),texture(uMB,v),uMix);
+  vec3 col=uBg;
+  for(int i=0;i<4;i++){col=mix(col,uC[i],mk[i]*0.24);}
+  for(int i=0;i<4;i++){float a=s[i];float t=smoothstep(0.04,0.55,a);
+    vec3 tis=mix(mix(uBg,uC[i],0.55),uC[i],smoothstep(0.1,0.5,a));tis=mix(tis,uD[i],smoothstep(0.55,1.0,a));
+    col=mix(col,tis,t*0.97);}
+  vec2 q=v*2.0-1.0;col*=1.0-0.07*smoothstep(0.6,1.45,length(q));
+  o=vec4(col,1.0);
+}`;
+function compile(fs){
+  const p=gl.createProgram();
+  for(const [t,src] of [[gl.VERTEX_SHADER,VS],[gl.FRAGMENT_SHADER,fs]]){const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);
+    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));gl.attachShader(p,s);}
+  gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));
+  const u={};const n=gl.getProgramParameter(p,gl.ACTIVE_UNIFORMS);
+  for(let i=0;i<n;i++){const a=gl.getActiveUniform(p,i);u[a.name.replace(/\[0\]$/,"")]=gl.getUniformLocation(p,a.name);}
+  return{p,u};
+}
+let P;
+try{P={step:compile(FS_STEP),seed:compile(FS_SEED),show:compile(FS_SHOW)};}catch(e){console.error(e);fail("The GPU couldn't compile this demo's shaders.");return;}
+gl.bindVertexArray(gl.createVertexArray());
+function stateTex(){
+  const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA16F,N,N,0,gl.RGBA,gl.FLOAT,new Float32Array(N*N*4));
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT);
+  const f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,f);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t,0);
+  if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE)throw new Error("fbo");
+  return{t,f};
+}
+function maskTex(){const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,N,N,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);return t;}
+function dataTex(n,data){const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA32F,n,n,0,gl.RGBA,gl.FLOAT,data);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);return t;}
+let S;
+try{S=[stateTex(),stateTex()];}catch(e){fail("This GPU can't render to floating-point textures, which the simulation needs.");return;}
+let cur=0,phase=0;
+const masks=[maskTex(),maskTex()];let maskA=0,mixT=1,mixStart=0;
+
+/* ---------- Spec -> rules, masks, colors ---------- */
+const hex=h=>{const m=/^#?([0-9a-f]{6})$/i.exec(h||"");const x=m?m[1]:"888888";return[parseInt(x.slice(0,2),16)/255,parseInt(x.slice(2,4),16)/255,parseInt(x.slice(4,6),16)/255];};
+let rules=null,colors={bg:[.95,.94,.91],c:[[0,0,0],[0,0,0],[0,0,0],[0,0,0]],d:[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]},colorFrom=null,colorTo=null,colorT=1;
+function buildRules(spec){
+  const beh=[0,1,2,3].map(i=>spec.species[i]?BEHAVIORS[spec.species[i].behavior]:null);
+  const rmax=Math.max(...beh.filter(Boolean).flatMap(g=>g.k.map(k=>k.r*KSCALE)));
+  const B=Math.ceil((rmax+2)/2),n=2*B;
+  const tex=[[],[]];
+  for(const ph of [0,1]){
+    const data=[0,1,2].map(()=>new Float32Array(n*n*4));
+    for(let s=0;s<4;s++){if(!beh[s])continue;
+      for(let k=0;k<3;k++){const K=beh[s].k[k];const r=K.r*KSCALE;let sum=0;
+        for(let j=0;j<n;j++)for(let i=0;i<n;i++){const dx=2*(i-B)+0.5-ph,dy=2*(j-B)+0.5-ph,q=Math.hypot(dx,dy)/r;
+          const w=q<1?Math.exp(-((q-K.c)**2)/(2*K.w*K.w)):0;data[k][(j*n+i)*4+s]=w;sum+=w;}
+        for(let i=0;i<n*n;i++)data[k][i*4+s]/=(sum||1);}}
+    tex[ph]=data.map(d=>dataTex(n,d));
+  }
+  const vec=(f)=>[0,1,2].map(k=>[0,1,2,3].map(s=>beh[s]?f(beh[s],beh[s].k[k]):(f===fS?0.05:0)));
+  const fM=(g,K)=>K.m,fS=(g,K)=>K.s,fH=(g,K)=>K.h;
+  return{B,tex,M:vec(fM),Sg:vec(fS),H:vec(fH),dt:[0,1,2,3].map(s=>beh[s]?beh[s].dt:0)};
+}
+function drawMask(spec){
+  const c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d");
+  const out=new Uint8Array(N*N*4);const sc=N/100;
+  for(let s=0;s<4;s++){
+    x.setTransform(1,0,0,1,0,0);x.fillStyle="#000";x.fillRect(0,0,N,N);x.fillStyle="#fff";x.strokeStyle="#fff";x.lineCap="round";
+    for(const sh of spec.shapes){if(sh.species!==s)continue;x.save();x.scale(sc,sc);
+      if(sh.type==="circle"){x.beginPath();x.arc(sh.x,sh.y,sh.r,0,Math.PI*2);x.fill();}
+      else if(sh.type==="ellipse"){x.beginPath();x.ellipse(sh.x,sh.y,sh.rx,sh.ry,sh.angle*Math.PI/180,0,Math.PI*2);x.fill();}
+      else if(sh.type==="line"){x.lineWidth=sh.width;x.beginPath();x.moveTo(sh.x1,sh.y1);x.lineTo(sh.x2,sh.y2);x.stroke();}
+      else if(sh.type==="petals"){for(let i=0;i<sh.count;i++){const a=(sh.angle+i*360/sh.count)*Math.PI/180-Math.PI/2;
+        x.beginPath();x.ellipse(sh.x+Math.cos(a)*sh.length/2,sh.y+Math.sin(a)*sh.length/2,sh.length/2,sh.width/2,a,0,Math.PI*2);x.fill();}}
+      else if(sh.type==="polygon"){x.beginPath();sh.points.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.closePath();x.fill();}
+      x.restore();}
+    // soften edges
+    const c2=document.createElement("canvas");c2.width=c2.height=N;const x2=c2.getContext("2d");
+    x2.filter="blur(1.2px)";x2.drawImage(c,0,0);
+    const px=x2.getImageData(0,0,N,N).data;
+    for(let i=0;i<N*N;i++)out[i*4+s]=px[i*4];
+  }
+  // flip vertically so the drawing's top is at the top of the GL texture
+  const flipped=new Uint8Array(N*N*4);for(let y=0;y<N;y++)flipped.set(out.subarray((N-1-y)*N*4,(N-y)*N*4),y*N*4);
+  return flipped;
+}
+function applySpec(spec,fresh){
+  if(rules){rules.tex.flat().forEach(t=>gl.deleteTexture(t));}
+  rules=buildRules(spec);
+  const newIdx=1-maskA;gl.bindTexture(gl.TEXTURE_2D,masks[newIdx]);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,N,N,0,gl.RGBA,gl.UNSIGNED_BYTE,drawMask(spec));
+  const target={bg:hex(spec.background),c:[0,1,2,3].map(i=>spec.species[i]?hex(spec.species[i].color):hex(spec.background)),d:[0,1,2,3].map(i=>spec.species[i]?hex(spec.species[i].deep):hex(spec.background))};
+  if(fresh){
+    maskA=newIdx;mixT=1;colors=target;colorT=1;
+    seed(masks[maskA],3.0); // 3.0 clears then seeds
+  }else{
+    // cross-fade from the current mask to the new one, keeping the cells
+    mixStart=performance.now();mixT=0;maskB=newIdx;colorFrom=JSON.parse(JSON.stringify(colors));colorTo=target;colorT=0;
+    seed(masks[newIdx],0.8);
+  }
+}
+let maskB=1;
+function seed(maskT,amt){
+  const pr=P.seed;gl.useProgram(pr.p);gl.bindFramebuffer(gl.FRAMEBUFFER,S[1-cur].f);gl.viewport(0,0,N,N);
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,S[cur].t);gl.uniform1i(pr.u.uState,0);
+  gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,maskT);gl.uniform1i(pr.u.uMask,1);
+  gl.uniform1f(pr.u.uSeed,Math.random()*100);gl.uniform1f(pr.u.uAmt,amt);gl.uniform2f(pr.u.uSize,N,N);
+  gl.drawArrays(gl.TRIANGLES,0,3);cur=1-cur;
+}
+let tick=0;
+function step(){
+  const pr=P.step,u=pr.u;gl.useProgram(pr.p);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,S[1-cur].f);gl.viewport(0,0,N,N);
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,S[cur].t);gl.uniform1i(u.uState,0);
+  for(let k=0;k<3;k++){gl.activeTexture(gl.TEXTURE1+k);gl.bindTexture(gl.TEXTURE_2D,rules.tex[phase][k]);gl.uniform1i(u["uW"+k],1+k);}
+  gl.activeTexture(gl.TEXTURE4);gl.bindTexture(gl.TEXTURE_2D,masks[maskA]);gl.uniform1i(u.uMA,4);
+  gl.activeTexture(gl.TEXTURE5);gl.bindTexture(gl.TEXTURE_2D,masks[mixT<1?maskB:maskA]);gl.uniform1i(u.uMB,5);
+  gl.uniform1f(u.uMix,mixT<1?mixT:0);gl.uniform1f(u.uPhase,phase);gl.uniform1f(u.uTime,(tick++)%1000);gl.uniform1i(u.uB,rules.B);gl.uniform2f(u.uSize,N,N);
+  for(let k=0;k<3;k++){gl.uniform4fv(u["uM"+k],rules.M[k]);gl.uniform4fv(u["uS"+k],rules.Sg[k]);gl.uniform4fv(u["uH"+k],rules.H[k]);}
+  gl.uniform4fv(u.uDt,rules.dt);
+  gl.drawArrays(gl.TRIANGLES,0,3);cur=1-cur;phase^=1;
+}
+function show(){
+  const pr=P.show,u=pr.u;gl.useProgram(pr.p);gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,glc.width,glc.height);
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,S[cur].t);gl.uniform1i(u.uState,0);
+  gl.activeTexture(gl.TEXTURE4);gl.bindTexture(gl.TEXTURE_2D,masks[maskA]);gl.uniform1i(u.uMA,4);
+  gl.activeTexture(gl.TEXTURE5);gl.bindTexture(gl.TEXTURE_2D,masks[mixT<1?maskB:maskA]);gl.uniform1i(u.uMB,5);
+  gl.uniform1f(u.uMix,mixT<1?mixT:0);
+  gl.uniform3fv(u.uBg,colors.bg);gl.uniform3fv(u.uC,colors.c.flat());gl.uniform3fv(u.uD,colors.d.flat());
+  gl.drawArrays(gl.TRIANGLES,0,3);
+}
+
+/* ---------- Chain ---------- */
+function fnv(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function hash(s){let o="";for(let i=0;i<8;i++)o+=fnv(i+"|"+s).toString(16).padStart(8,"0");return o;}
+let chain=[],viewing=0;
+function snapshot(L){if(!L)return;show();if(!L.thumb){L.thumb=document.createElement("canvas");L.thumb.width=L.thumb.height=240;}const x=L.thumb.getContext("2d");x.clearRect(0,0,240,240);x.drawImage(glc,0,0,240,240);if(L.canvas)L.canvas.getContext("2d").drawImage(L.thumb,0,0);}
+function addLink(prompt,spec){
+  const prev=chain.length?chain[chain.length-1].hash:"0".repeat(64);
+  const link={prompt,spec,hash:hash(prev+"|"+prompt+"|"+JSON.stringify(spec)),prev};
+  const fresh=!chain.length;
+  if(chain.length)snapshot(chain[viewing]);
+  chain.push(link);viewing=chain.length-1;
+  applySpec(spec,fresh);renderChain();describe();
+}
+function renderChain(){
+  const el=$("chain");el.innerHTML="";
+  chain.forEach((L,i)=>{
+    if(i){const d=document.createElement("div");d.className="link";el.appendChild(d);}
+    const b=document.createElement("button");b.className="lk"+(i===viewing?" cur":"");
+    const c=document.createElement("canvas");c.width=c.height=240;if(L.thumb)c.getContext("2d").drawImage(L.thumb,0,0,240,240);L.canvas=c;
+    b.appendChild(c);
+    const n=document.createElement("span");n.className="n";n.textContent="Link "+(i+1);b.appendChild(n);
+    const p=document.createElement("span");p.className="p";p.textContent=L.prompt;b.appendChild(p);
+    const h=document.createElement("span");h.className="h";h.textContent=L.hash.slice(0,10)+"…";b.appendChild(h);
+    b.setAttribute("aria-label","Link "+(i+1)+": "+L.prompt+". Grow it again.");
+    b.addEventListener("click",()=>{if(busy)return;snapshot(chain[viewing]);viewing=i;applySpec(L.spec,true);renderChain();describe();status("Growing link "+(i+1)+" again from fresh seeds. New prompts still build on the last link.");});
+    el.appendChild(b);
+  });
+  const w=el.parentElement;w.scrollLeft=w.scrollWidth;
+}
+function describe(){
+  const L=chain[viewing],s=L.spec;
+  $("lnum").textContent="Link "+(viewing+1)+" of "+chain.length+(viewing!==chain.length-1?" (replaying)":"");
+  $("ltitle").textContent=s.title;$("linterp").textContent=s.interpretation;
+  const ul=$("legend");ul.innerHTML="";
+  s.species.forEach(sp=>{const li=document.createElement("li");const sw=document.createElement("span");sw.className="sw";sw.style.background=sp.color;
+    const t=document.createElement("span");t.textContent=sp.name+" ";const b=document.createElement("span");b.className="b";b.textContent=BLABEL[sp.behavior];t.appendChild(b);li.append(sw,t);ul.appendChild(li);});
+  const last=chain[chain.length-1].spec;
+  $("nextIdea").textContent=last.next||"";$("dream").hidden=!last.next||!sampleReady;
+}
+function status(t,err){const s=$("status");s.textContent=t;s.classList.toggle("err",!!err);}
+
+/* ---------- Validation of Claude's reply ---------- */
+const num=(v,a,b,d)=>{v=Number(v);return Number.isFinite(v)?Math.max(a,Math.min(b,v)):d;};
+const colorOk=c=>/^#[0-9a-f]{6}$/i.test(c||"");
+function clean(raw){
+  if(!raw||typeof raw!=="object")throw new Error("shape");
+  const sp=(Array.isArray(raw.species)?raw.species:[]).slice(0,4).map((s,i)=>({
+    name:String(s&&s.name||"Tissue "+(i+1)).slice(0,40),
+    color:colorOk(s&&s.color)?s.color:["#C2366B","#E0A526","#3E8E4F","#6A4BC4"][i],
+    deep:colorOk(s&&s.deep)?s.deep:["#6E1240","#8A5A0C","#1D4F2A","#2E1F6B"][i],
+    behavior:BEHAVIORS[s&&s.behavior]?s.behavior:["membranes","dots","stripes","beads"][i]}));
+  if(!sp.length)throw new Error("no species");
+  const shapes=[];
+  for(const s of (Array.isArray(raw.shapes)?raw.shapes:[]).slice(0,40)){
+    if(!s||typeof s!=="object")continue;const species=Math.round(num(s.species,0,sp.length-1,0));
+    if(s.type==="circle")shapes.push({type:"circle",x:num(s.x,-20,120,50),y:num(s.y,-20,120,50),r:num(s.r,0.5,70,5),species});
+    else if(s.type==="ellipse")shapes.push({type:"ellipse",x:num(s.x,-20,120,50),y:num(s.y,-20,120,50),rx:num(s.rx,0.5,80,5),ry:num(s.ry,0.5,80,5),angle:num(s.angle,-720,720,0),species});
+    else if(s.type==="line")shapes.push({type:"line",x1:num(s.x1,-20,120,40),y1:num(s.y1,-20,120,40),x2:num(s.x2,-20,120,60),y2:num(s.y2,-20,120,60),width:num(s.width,0.5,40,4),species});
+    else if(s.type==="petals")shapes.push({type:"petals",x:num(s.x,-20,120,50),y:num(s.y,-20,120,50),count:Math.round(num(s.count,2,24,6)),length:num(s.length,1,70,20),width:num(s.width,0.5,50,10),angle:num(s.angle,-720,720,0),species});
+    else if(s.type==="polygon"&&Array.isArray(s.points)){const pts=s.points.slice(0,24).filter(p=>Array.isArray(p)&&p.length>=2).map(p=>[num(p[0],-20,120,50),num(p[1],-20,120,50)]);if(pts.length>=3)shapes.push({type:"polygon",points:pts,species});}
+  }
+  if(!shapes.length)throw new Error("no shapes");
+  return{title:String(raw.title||"Untitled").slice(0,60),interpretation:String(raw.interpretation||"").slice(0,400),background:colorOk(raw.background)?raw.background:"#F3F0E8",species:sp,shapes,next:String(raw.next||"").slice(0,160)};
+}
+function buildPrompt(prompt,prev){
+  const bl=Object.keys(BEHAVIORS).map(k=>k+" ("+BLABEL[k]+")").join(", ");
+  let s=`You are designing one link in a chain of living drawings. A cellular automaton will grow your sketch. Each "species" is a living tissue that can only live inside the shapes assigned to it, and its behavior sets the texture it forms.
+
+CANVAS: 100 x 100 units, origin top-left, x to the right, y downward. Keep important content between 6 and 94.
+
+SHAPES (at most 30), each with "species" set to the index of a species:
+- {"type":"circle","x":..,"y":..,"r":..,"species":0}
+- {"type":"ellipse","x":..,"y":..,"rx":..,"ry":..,"angle":degrees,"species":0}
+- {"type":"line","x1":..,"y1":..,"x2":..,"y2":..,"width":..,"species":0}
+- {"type":"petals","x":..,"y":..,"count":3-16,"length":..,"width":..,"angle":degrees,"species":0} (a ring of petal-shaped ellipses radiating out from x,y)
+- {"type":"polygon","points":[[x,y],...],"species":0} (3 to 12 points)
+Living texture needs room: anything thinner than about 5 units shows only as a faint sketch. Make the main forms bold and large. Shapes of later species are drawn on top of earlier ones.
+
+SPECIES (1 to 4): {"name":"short name","color":"#rrggbb","deep":"#rrggbb" (a darker shade of color),"behavior":one of: ${bl}}
+Choose colors that read clearly on the background and behaviors that suit each part, for example stripes for wood grain or leaves, membranes for soft living things, swarm for air, water or crowds, clusters for seeds or stone.
+`;
+  if(prev){s+=`
+PREVIOUS LINK (the scene as it is right now):
+${JSON.stringify({title:prev.title,background:prev.background,species:prev.species,shapes:prev.shapes})}
+
+Evolve this scene according to the new prompt. Keep continuity: reuse species indexes, colors and positions where they still make sense, so the living tissue flows from one link into the next. Change what the prompt asks for.
+`;}
+  s+=`
+PROMPT: ${JSON.stringify(prompt)}
+
+Reply with only a JSON object, no other text:
+{"title":"2 to 5 words","interpretation":"one sentence on what you drew and how it will live","background":"#rrggbb (light and paper-like works best)","species":[...],"shapes":[...],"next":"a short, evocative prompt for what this scene could become next"}`;
+  return s;
+}
+
+/* ---------- Claude ---------- */
+let sample=null,sampleReady=false,busy=false,ctl=null,presetI=1;
+(async()=>{try{sample=window.claude?await window.claude.use("sample"):null;}catch(e){sample=null;}
+  if(!sample){$("prompt").disabled=true;$("prompt").placeholder="Claude isn't available in this view. You can still step through the example chain.";
+    $("bGrow").textContent="Next example link";$("dream").hidden=true;status("Showing the hand-made example chain.");}
+  else{sampleReady=true;describe();}
+})();
+async function grow(prompt){
+  if(busy)return;
+  if(!sample){ // example chain only
+    if(presetI<PRESETS.length){addLink(PRESETS[presetI].prompt,PRESETS[presetI].spec);presetI++;status("Example link "+presetI+" of "+PRESETS.length+".");}
+    else status("That's the end of the example chain.");
+    return;
+  }
+  prompt=(prompt||"").trim();if(!prompt){status("Write a prompt first, or dream the next link.",true);return;}
+  busy=true;ctl=new AbortController();$("bGrow").disabled=true;$("bDream").disabled=true;$("bNew").disabled=true;$("bStop").hidden=false;
+  $("sheet").classList.add("working");const t0=performance.now();
+  const iv=setInterval(()=>{$("busy").textContent="Claude is imagining the next link… "+Math.round((performance.now()-t0)/1000)+"s";},500);
+  status("Asking Claude to draw: “"+prompt+"”");
+  try{
+    const prev=chain.length?chain[chain.length-1].spec:null;
+    const raw=await sample.json(buildPrompt(prompt,prev),{signal:ctl.signal,cache:false});
+    const spec=clean(raw);
+    addLink(prompt,spec);$("prompt").value="";
+    status("Link "+chain.length+" is growing. Its hash includes link "+(chain.length-1)+".");
+  }catch(e){
+    const c=e&&e.code;
+    if(c==="cancelled")status("Stopped.");
+    else if(c==="not_granted"){status("Claude access was declined, so new links are off for this visit. Tap earlier links to replay them.",true);$("bGrow").disabled=true;$("bDream").disabled=true;}
+    else if(c==="rate_limited")status("Too many requests right now. Wait a moment, then try again.",true);
+    else status("Claude's drawing couldn't be used. Try again or rephrase the prompt.",true);
+  }finally{
+    clearInterval(iv);busy=false;$("sheet").classList.remove("working");$("bStop").hidden=true;$("bNew").disabled=false;
+    if(!(sample===null)){$("bGrow").disabled=false;$("bDream").disabled=false;}
+  }
+}
+$("bGrow").addEventListener("click",()=>grow($("prompt").value));
+$("prompt").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.metaKey||e.ctrlKey))grow($("prompt").value);});
+$("bDream").addEventListener("click",()=>{const n=chain[chain.length-1].spec.next;if(n)grow(n);});
+$("bStop").addEventListener("click",()=>ctl&&ctl.abort());
+$("bNew").addEventListener("click",()=>{if(busy)return;chain=[];presetI=1;addLink(PRESETS[0].prompt,PRESETS[0].spec);
+  status(sample?"New chain started from the example flower. Write any prompt to take it somewhere else.":"Example chain restarted.");});
+
+/* ---------- Loop ---------- */
+function size(){const dpr=Math.min(2,window.devicePixelRatio||1);const w=Math.round($("sheet").getBoundingClientRect().width*dpr)||600;glc.width=w;glc.height=w;}
+window.addEventListener("resize",size);
+const reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+let frame=0,ft=16,last=performance.now();
+function loop(now){
+  const dt=now-last;last=now;ft=ft*0.95+dt*0.05;
+  const every=ft>40?3:ft>24?2:1;
+  if(mixT<1){mixT=Math.min(1,(now-mixStart)/1800);if(mixT>=1){maskA=maskB;}}
+  if(colorT<1&&colorFrom){colorT=Math.min(1,(now-mixStart)/1800);const e=colorT;
+    const L=(a,b)=>a.map((x,i)=>x+(b[i]-x)*e);colors={bg:L(colorFrom.bg,colorTo.bg),c:colorFrom.c.map((c,i)=>L(c,colorTo.c[i])),d:colorFrom.d.map((c,i)=>L(c,colorTo.d[i]))};}
+  if(frame%(reduce?4:every)===0)step();
+  show();
+  if(frame%45===0&&chain[viewing]){const L=chain[viewing];if(!L.thumb){L.thumb=document.createElement("canvas");L.thumb.width=L.thumb.height=240;}
+    L.thumb.getContext("2d").drawImage(glc,0,0,240,240);if(L.canvas)L.canvas.getContext("2d").drawImage(L.thumb,0,0);}
+  frame++;requestAnimationFrame(loop);
+}
+size();addLink(PRESETS[0].prompt,PRESETS[0].spec);
+for(let i=0;i<40;i++)step();
+requestAnimationFrame(t=>{last=t;loop(t);});
+
+})();
+</script>
+</body>
+</html>

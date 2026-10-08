@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prompt Mining: Proof of Generation, running</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E8EBF2; --panel:#F7F8FC; --ink:#16224A; --muted:#58618A; --line:#C8CEE0;
+  --gold:#9C7614; --gold-soft:#EFE3BC; --rust:#B0432C; --rust-soft:#F5DAD2;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1834; --panel:#16224A; --ink:#E7EAF5; --muted:#9CA5C9; --line:#2B3A6C;
+    --gold:#DDBB52; --gold-soft:#3A3620; --rust:#E4826A; --rust-soft:#40232A;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1834; --panel:#16224A; --ink:#E7EAF5; --muted:#9CA5C9; --line:#2B3A6C;
+  --gold:#DDBB52; --gold-soft:#3A3620; --rust:#E4826A; --rust-soft:#40232A;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding:40px 24px 64px}
+h1{font-family:"IM Fell English",Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(2.1rem,5vw,3.2rem);line-height:1.05;margin:0 0 14px;letter-spacing:-.01em}
+h2{font-family:"IM Fell English",Georgia,serif;font-weight:400;font-size:1.35rem;margin:0 0 8px}
+.lede{max-width:64ch;margin:0 0 6px;font-size:1.05rem}
+.credit{max-width:64ch;margin:0 0 32px;color:var(--muted);font-size:.9rem}
+.top{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:32px;align-items:start}
+.frame{position:relative;background:var(--panel);border:1px solid var(--gold);padding:10px;overflow:hidden}
+.frame canvas{display:block;width:100%;height:auto;aspect-ratio:1/1;transition:filter .6s ease}
+.frame.veiled canvas{filter:blur(18px) saturate(.6)}
+.veil{position:absolute;inset:10px;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-family:"IM Fell English",Georgia,serif;font-style:italic;font-size:1.15rem;color:#F3EEDD;text-shadow:0 1px 6px rgba(0,0,0,.6);transition:opacity .4s}
+.frame:not(.veiled) .veil{opacity:0;pointer-events:none}
+.target dl{margin:12px 0 0;display:grid;gap:8px}
+dt{font-size:.82rem;color:var(--muted)}
+dd{margin:0}
+.hash{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;word-break:break-all}
+.prompt{font-family:"IM Fell English",Georgia,serif;font-size:1.3rem}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:0 0 18px}
+.stat b{display:block;font-weight:500;font-size:1.5rem;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat span{font-size:.82rem;color:var(--muted)}
+.stat.warn b{color:var(--rust)}
+.miners{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.m{border:1px solid var(--line);background:var(--panel);padding:6px;min-width:0;transition:border-color .2s,box-shadow .2s}
+.m canvas{display:block;width:100%;height:auto;aspect-ratio:1/1}
+.m .n{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);margin-top:4px}
+.m .g{font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:1.3em}
+.m.win{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
+.m.near{border-color:var(--rust);box-shadow:0 0 0 2px var(--rust)}
+.m.lose{opacity:.45}
+.controls{margin:30px 0 14px;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font:inherit;font-size:.95rem;padding:9px 16px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;border-radius:2px}
+button:hover:not(:disabled){border-color:var(--gold)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.seg{display:inline-flex;align-items:center;gap:8px;font-size:.9rem;color:var(--muted)}
+.seg button{padding:7px 12px;font-size:.88rem}
+.seg button[aria-pressed="true"]{background:var(--gold-soft);border-color:var(--gold);color:var(--ink)}
+.log{min-height:1.5em;margin:0 0 22px;font-size:.95rem;max-width:80ch}
+.chainwrap{overflow-x:auto;padding:6px 2px 14px}
+.chain{display:flex;align-items:center;width:max-content;min-height:60px}
+.chain .empty{color:var(--muted);font-style:italic;font-family:"IM Fell English",Georgia,serif}
+.link{width:22px;height:2px;background:var(--gold);flex:none}
+.nft{flex:none;width:128px;padding:6px;border:1px solid var(--gold);background:var(--panel)}
+.nft canvas{display:block;width:116px;height:116px}
+.nft .p{font-family:"IM Fell English",Georgia,serif;font-size:.95rem;line-height:1.2;margin-top:5px}
+.nft .w{font-size:.72rem;color:var(--muted)}
+.how{margin-top:40px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px}
+.how p{margin:0;color:var(--muted);font-size:.95rem;max-width:40ch}
+@media (max-width:820px){
+  .wrap{padding:28px 16px 48px}
+  .top{grid-template-columns:1fr}
+  .frame{max-width:360px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .miners{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .how{grid-template-columns:1fr;gap:18px}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Prompt Mining</h1>
+  <p class="lede">Proof of Generation, running live. One machine picks a secret prompt, paints it, and broadcasts only the hash of the painting. Twelve miners race to find a prompt that paints the same image. The first to match mints it as an NFT and sets the next puzzle.</p>
+  <p class="credit">An interactive sketch of ironchef's 2023 essay “Generative Blockchains.” Prompts are noun, verb, noun, as in the essay. The model is a small procedural painter standing in for a real image model, so it runs in your browser.</p>
+
+  <section class="top">
+    <div class="target">
+      <div class="frame veiled" id="tFrame">
+        <canvas id="tCanvas" width="480" height="480" aria-label="The target painting"></canvas>
+        <div class="veil" id="veil">Miners never see this painting, only its hash</div>
+      </div>
+      <dl>
+        <div><dt>Broadcast hash</dt><dd class="hash" id="tHash">waiting for the first round</dd></div>
+        <div><dt>Secret prompt</dt><dd class="prompt" id="tPrompt">hidden</dd></div>
+        <div><dt>Proposed by</dt><dd id="tBy">none yet</dd></div>
+      </dl>
+    </div>
+    <div>
+      <div class="stats">
+        <div class="stat"><b id="sSpace">0</b><span>Possible prompts</span></div>
+        <div class="stat"><b id="sGuess">0</b><span>Guesses this round</span></div>
+        <div class="stat"><b id="sRate">0</b><span>Guesses per second</span></div>
+        <div class="stat" id="sNearWrap"><b id="sNear">0</b><span>Right prompt, wrong hash</span></div>
+      </div>
+      <div class="miners" id="miners"></div>
+    </div>
+  </section>
+
+  <div class="controls">
+    <div class="row">
+      <button class="primary" id="bRun">Start mining</button>
+      <button id="bReset">Reset</button>
+    </div>
+    <div class="seg" role="group" aria-label="How the model samples">
+      Model output
+      <button id="sDet" aria-pressed="true">Deterministic</button>
+      <button id="sNoisy" aria-pressed="false">Noisy, like real models</button>
+    </div>
+  </div>
+  <p class="log" id="log" aria-live="polite">Press Start mining. The first proposer picks a prompt and the race begins.</p>
+
+  <h2>Minted NFTs</h2>
+  <div class="chainwrap"><div class="chain" id="chain"><span class="empty">Nothing minted yet.</span></div></div>
+
+  <section class="how">
+    <div><h2>Propose</h2><p>A machine rolls a random noun, verb and noun, paints it, and publishes only the painting's hash. The prompt stays secret.</p></div>
+    <div><h2>Mine</h2><p>Every miner feeds random prompts into the same model and hashes the result. Work is spent on generation instead of arbitrary puzzles.</p></div>
+    <div><h2>The catch</h2><p>Switch to noisy output. Real models rarely paint the same image twice, so even the right prompt misses the hash. The essay calls this out: as written, it isn't secure.</p></div>
+  </section>
+</main>
+
+<script>
+(function(){
+const NOUNS=["Giraffe","Elephant","Cheetah","Octopus","Robot","Wizard","Lighthouse","Cactus","Hill","Hat","Cheese","Moon"];
+const VERBS=["Wearing","Eating","Running","Juggling","Painting","Riding","Hugging","Chasing"];
+const SPACE=NOUNS.length*VERBS.length*NOUNS.length;
+const WEIGHTS="memechain-painter:4d1e";
+const MINERS=Array.from({length:12},(_,i)=>"miner-"+String(i+1).padStart(2,"0"));
+const PIG=["#22397A","#1B1D2B","#B8402E","#2E6E53","#C98B2B","#7E2F4A","#1F4E7A","#EDE3CB","#6F9BD1","#D98C9A"];
+const GOLD="#D4AF37";
+const reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function cyrb53(str,seed){seed=seed||0;let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507);h1^=Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507);h2^=Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0);}
+function hash(s){let o="";for(let i=0;i<5;i++)o+=cyrb53(s,i*7919).toString(16).padStart(14,"0");return o.slice(0,64);}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+let noisy=false;
+function runModel(prompt){
+  const seed=cyrb53(WEIGHTS+"|"+prompt)>>>0;const r=mulberry32(seed);
+  const bgs=[0,1,3,5,6];const bg=bgs[Math.floor(r()*bgs.length)];
+  const pool=[2,4,7,8,9,3,0].filter(i=>i!==bg);const pal=[];
+  while(pal.length<3){const p=pool[Math.floor(r()*pool.length)];if(!pal.includes(p))pal.push(p);}
+  const L={seed,bg,pal,petals:5+Math.floor(r()*8),rings:2+Math.floor(r()*4),rot:r()*Math.PI*2,
+    lines:60+Math.floor(r()*70),f1:0.5+r()*3,f2:0.5+r()*3,k:0.6+r()*2,border:Math.floor(r()*3),
+    petalLen:0.15+r()*0.08,petalW:0.05+r()*0.07};
+  if(noisy){ // sampling noise: nearly the same painting, different bytes
+    L.rot+=(Math.random()-.5)*0.25;L.k+=(Math.random()-.5)*0.2;L.petalW+=(Math.random()-.5)*0.01;
+    L.lines+=Math.floor((Math.random()-.5)*10);L.seed=(L.seed+Math.floor(Math.random()*3))>>>0;
+  }
+  for(const k of ["rot","f1","f2","k","petalLen","petalW"])L[k]=+L[k].toFixed(4);
+  return L;
+}
+const fingerprint=L=>hash(JSON.stringify(L));
+
+function paint(ctx,S,L){
+  const r=mulberry32((L.seed^0x9e3779b9)>>>0);const P=L.pal.map(i=>PIG[i]);
+  ctx.save();ctx.globalAlpha=1;ctx.fillStyle=PIG[L.bg];ctx.fillRect(0,0,S,S);
+  ctx.lineWidth=Math.max(1,S/280);ctx.lineCap="round";
+  for(let i=0;i<L.lines;i++){let x=r()*S,y=r()*S;ctx.beginPath();ctx.moveTo(x,y);ctx.strokeStyle=P[i%3];ctx.globalAlpha=.38;
+    for(let j=0;j<30;j++){const a=Math.sin(x/S*L.f1*6+L.rot)*Math.cos(y/S*L.f2*6)*L.k*Math.PI;x+=Math.cos(a)*S/95;y+=Math.sin(a)*S/95;ctx.lineTo(x,y);}ctx.stroke();}
+  ctx.globalAlpha=1;const c=S/2;
+  ctx.save();ctx.translate(c,c);ctx.rotate(L.rot);
+  for(let i=0;i<L.petals;i++){ctx.rotate(Math.PI*2/L.petals);ctx.beginPath();ctx.ellipse(0,-S*L.petalLen,S*L.petalW,S*L.petalLen*.95,0,0,Math.PI*2);
+    ctx.fillStyle=P[1];ctx.globalAlpha=.92;ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=GOLD;ctx.lineWidth=Math.max(1,S/230);ctx.stroke();}
+  ctx.restore();
+  for(let i=L.rings;i>0;i--){ctx.beginPath();ctx.arc(c,c,S*.03+i*S*.028,0,Math.PI*2);ctx.fillStyle=i%2?P[0]:PIG[L.bg];ctx.fill();ctx.strokeStyle=GOLD;ctx.lineWidth=Math.max(1,S/260);ctx.stroke();}
+  ctx.beginPath();ctx.arc(c,c,S*.022,0,Math.PI*2);ctx.fillStyle=GOLD;ctx.fill();
+  const b=S*.045;ctx.strokeStyle=GOLD;ctx.lineWidth=Math.max(1,S/110);ctx.strokeRect(b,b,S-2*b,S-2*b);
+  if(L.border>0){const n=14,step=(S-2*b)/n;for(let i=0;i<=n;i++){for(const [x,y] of [[b+i*step,b],[b+i*step,S-b],[b,b+i*step],[S-b,b+i*step]]){ctx.beginPath();ctx.arc(x,y,S*(L.border===2?.011:.008),0,Math.PI*2);ctx.fillStyle=(i%2)?P[2]:GOLD;ctx.fill();}}}
+  ctx.restore();
+}
+
+const $=id=>document.getElementById(id);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const randPrompt=()=>pick(NOUNS)+" "+pick(VERBS)+" "+pick(NOUNS);
+const fmt=n=>n.toLocaleString("en-US");
+
+/* build miner tiles */
+const tiles=MINERS.map(name=>{
+  const d=document.createElement("div");d.className="m";
+  d.innerHTML='<canvas width="140" height="140"></canvas><div class="g">idle</div><div class="n"><span>'+name+'</span><span class="c">0</span></div>';
+  $("miners").appendChild(d);
+  return{el:d,ctx:d.querySelector("canvas").getContext("2d"),g:d.querySelector(".g"),c:d.querySelector(".c"),count:0};
+});
+$("sSpace").textContent=fmt(SPACE);
+
+let running=false,timer=null,round=null,chain=[],prevHash="0".repeat(64),nearCount=0;
+let rateWindow=[],lastWinner=null;
+
+function newRound(proposer){
+  const prompt=randPrompt();const L=runModel(prompt);const target=fingerprint(L);
+  round={prompt,L,target,proposer,guesses:0,start:performance.now(),done:false};
+  paint($("tCanvas").getContext("2d"),480,L);
+  $("tFrame").classList.add("veiled");
+  $("tHash").textContent=target;$("tPrompt").textContent="hidden";$("tBy").textContent=proposer;
+  $("sGuess").textContent="0";
+  tiles.forEach(t=>{t.el.classList.remove("win","lose","near");});
+  log(proposer+" broadcast a new hash. "+MINERS.length+" miners are searching "+fmt(SPACE)+" prompts for one that paints the same image.");
+}
+
+function tick(){
+  if(!running||!round||round.done)return;
+  const now=performance.now();
+  for(let i=0;i<tiles.length;i++){
+    const t=tiles[i];const g=randPrompt();const L=runModel(g);const fp=fingerprint(L);
+    t.count++;t.c.textContent=fmt(t.count);t.g.textContent=g;paint(t.ctx,140,L);
+    round.guesses++;rateWindow.push(now);
+    t.el.classList.remove("near");
+    if(fp===round.target){win(i,g);return;}
+    if(g===round.prompt){ // right prompt, but sampling noise changed the output
+      nearCount++;$("sNear").textContent=fmt(nearCount);t.el.classList.add("near");
+      log(MINERS[i]+" guessed the right prompt, “"+g+"”, but its painting came out slightly different, so the hash didn't match. That's the noise problem.");
+    }
+  }
+  rateWindow=rateWindow.filter(x=>now-x<1000);
+  $("sRate").textContent=fmt(rateWindow.length);
+  $("sGuess").textContent=fmt(round.guesses);
+}
+
+function win(i,g){
+  round.done=true;const w=MINERS[i];lastWinner=w;const secs=((performance.now()-round.start)/1000).toFixed(1);
+  tiles.forEach((t,j)=>t.el.classList.add(j===i?"win":"lose"));
+  $("tFrame").classList.remove("veiled");$("tPrompt").textContent=g;
+  const blockHash=hash(prevHash+"|"+round.target+"|"+g+"|"+w);prevHash=blockHash;
+  chain.push({prompt:g,winner:w,L:round.L,hash:blockHash});renderChain();
+  log(w+" found “"+g+"” after "+fmt(round.guesses)+" network guesses in "+secs+"s, and mints it as NFT #"+chain.length+". "+w+" proposes the next prompt.");
+  clearInterval(timer);timer=null;
+  setTimeout(()=>{if(running&&!timer&&round.done){newRound(w);timer=setInterval(tick,reduce?400:130);}},reduce?1500:2600);
+}
+
+function renderChain(){
+  const el=$("chain");el.innerHTML="";
+  chain.forEach((b,i)=>{
+    if(i>0){const l=document.createElement("div");l.className="link";el.appendChild(l);}
+    const d=document.createElement("div");d.className="nft";
+    const c=document.createElement("canvas");c.width=c.height=232;paint(c.getContext("2d"),232,b.L);d.appendChild(c);
+    const p=document.createElement("div");p.className="p";p.textContent=b.prompt;d.appendChild(p);
+    const w=document.createElement("div");w.className="w";w.textContent="#"+(i+1)+", mined by "+b.winner;d.appendChild(w);
+    el.appendChild(d);
+  });
+  const wrap=el.parentElement;wrap.scrollLeft=wrap.scrollWidth;
+}
+
+function start(){
+  running=true;$("bRun").textContent="Pause";
+  if(!round||round.done)newRound(lastWinner||pick(MINERS));
+  if(!timer)timer=setInterval(tick,reduce?400:130);
+}
+function pause(){running=false;$("bRun").textContent="Resume mining";clearInterval(timer);timer=null;$("sRate").textContent="0";rateWindow=[];}
+
+$("bRun").addEventListener("click",()=>running?pause():start());
+$("bReset").addEventListener("click",()=>{
+  pause();$("bRun").textContent="Start mining";round=null;lastWinner=null;chain=[];prevHash="0".repeat(64);nearCount=0;
+  $("sNear").textContent="0";$("sGuess").textContent="0";renderChain();
+  $("chain").innerHTML='<span class="empty">Nothing minted yet.</span>';
+  tiles.forEach(t=>{t.count=0;t.c.textContent="0";t.g.textContent="idle";t.el.classList.remove("win","lose","near");const x=t.ctx;x.clearRect(0,0,140,140);});
+  $("tFrame").classList.add("veiled");$("tHash").textContent="waiting for the first round";$("tPrompt").textContent="hidden";$("tBy").textContent="none yet";
+  const x=$("tCanvas").getContext("2d");x.clearRect(0,0,480,480);
+  log("Press Start mining. The first proposer picks a prompt and the race begins.");
+});
+function setNoisy(v){
+  noisy=v;$("sDet").setAttribute("aria-pressed",String(!v));$("sNoisy").setAttribute("aria-pressed",String(v));
+  if(running&&round&&!round.done){pause();round=null;start();}
+  log(v?"Noisy output on. Each render varies a little, the way diffusion models do. Watch the “right prompt, wrong hash” counter.":"Deterministic output. The same prompt always paints the same bytes, so the right guess always matches.");
+}
+$("sDet").addEventListener("click",()=>setNoisy(false));
+$("sNoisy").addEventListener("click",()=>setNoisy(true));
+})();
+</script>
+</body>
+</html>
